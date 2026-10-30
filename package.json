@@ -5,13 +5,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:gh-pages": "GITHUB_PAGES=true next build",
+    "build": "node scripts/build.js",
+    "build:gh-pages": "node scripts/build-gh-pages.js",
     "start": "next start",
     "lint": "eslint",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@google/genai": "^2.32.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.60.0",
     "next": "16.4.2",

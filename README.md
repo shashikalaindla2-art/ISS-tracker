@@ -3,12 +3,11 @@
 
 [![Deploy Next.js to GitHub Pages](https://github.com/srakshitha0802/ISS-tracker/actions/workflows/deploy.yml/badge.svg)](https://github.com/srakshitha0802/ISS-tracker/actions/workflows/deploy.yml)
 [![Live Demo](https://img.shields.io/badge/Live_Site-GitHub_Pages-06b6d4?style=flat&logo=github)](https://srakshitha0802.github.io/ISS-tracker/)
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.4.2-black?style=flat&logo=next.js)](https://nextjs.org)
-[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind-v4-06b6d4?style=flat&logo=tailwindcss)](https://tailwindcss.com)
+ [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind-v4-06b6d4?style=flat&logo=tailwindcss)](https://tailwindcss.com)
 [![Tests Passing](https://img.shields.io/badge/Tests-35%2F35%20Pass-10b981?style=flat&logo=vitest)](https://github.com/srakshitha0802/ISS-tracker)
-[![Dual APIs](https://img.shields.io/badge/APIs-WhereTheISS%20%2B%20DeepSeek-6366f1?style=flat)](https://platform.deepseek.com)
+[![Dual APIs](https://img.shields.io/badge/APIs-WhereTheISS%20%2B%20Gemini-6366f1?style=flat)](https://aistudio.google.com)
 
-An advanced, real-time aerospace flight telemetry and geospatial tracking web application for the **International Space Station (ISS, NORAD Catalog #25544)**. Powered by two primary APIs: the gold-standard **Where The ISS At? API** for real-time orbital vectors and the **DeepSeek AI API** for autonomous orbital copilot intelligence. Engineered with a sharp-edged mission control HUD aesthetic, audible 4K MP4 cosmic ambient soundtrack with 1-click unmuting and volume controls, precision Keplerian orbital mechanics, forward trajectory projections, 3D observer distance radar, and live Expedition 72 crew dossier.
+An advanced, real-time aerospace flight telemetry and geospatial tracking web application for the **International Space Station (ISS, NORAD Catalog #25544)**. Powered by two primary APIs: the gold-standard **Where The ISS At? API** for real-time orbital vectors and the **Google Gemini AI API** for autonomous orbital AI Chatbot intelligence. Engineered with a sharp-edged mission control HUD aesthetic, audible 4K MP4 cosmic ambient soundtrack with 1-click unmuting and volume controls, precision Keplerian orbital mechanics, forward trajectory projections, 3D observer distance radar, and live Expedition 72 crew dossier.
 
 🌐 **Live URL**: [https://srakshitha0802.github.io/ISS-tracker/](https://srakshitha0802.github.io/ISS-tracker/)  
 📦 **Repository**: [https://github.com/srakshitha0802/ISS-tracker](https://github.com/srakshitha0802/ISS-tracker)
@@ -31,10 +30,10 @@ An advanced, real-time aerospace flight telemetry and geospatial tracking web ap
 - **Autoplay Compliance & Gesture Recovery**: Initial muted autoplay adheres to strict browser security policies; seamlessly unmuted upon 1-click user interaction without stutter.
 - **Live Ambiance Controller**: Switch between **Cinema** (translucent HUD tint), **Vivid** (100% transparent zero-blur space view), and **Focus** (dark contrast analysis view).
 
-### 1.3. DeepSeek AI Orbital Copilot Engine
-- **Autonomous Aerospace Analyst**: Directly connects to the **DeepSeek API** (`deepseek-chat` / `deepseek-reasoner`).
+### 1.3. AI Chatbot Intelligence Engine
+- **Autonomous Aerospace Analyst**: Directly connects to the **Google Gemini API** (`gemini-flash-latest`).
 - **Real-Time Telemetry Synthesis**: Injects live latitude, longitude, altitude, velocity, daylight status, and overflight territory into AI flight dynamic briefings.
-- **Interactive Mission Terminal**: Run preset inquiries (Orbital Free-Fall Physics, Expedition 72 Science, ARISS HAM Radio Doppler shifts) or ask custom astrophysics questions.
+- **Interactive Mission Terminal**: Run preset inquiries (How AI Works, Orbital Free-Fall Physics, Expedition 72 Science, ARISS HAM Radio Doppler shifts) or ask custom astrophysics questions.
 - **Client & Server Key Management**: Optional direct API key configuration stored securely in browser `localStorage`.
 
 ### 1.4. Real-Time Telemetry & Failover Reliability (Where The ISS At? API)
@@ -64,13 +63,13 @@ An advanced, real-time aerospace flight telemetry and geospatial tracking web ap
 | :--- | :--- | :--- |
 | **Framework** | Next.js 16.4.2 (App Router) | Static export compatibility for GitHub Pages |
 | **Runtime** | React 19.3.0 | Modern client architecture & hooks |
-| **Styling** | Vanilla CSS + Tailwind CSS v4 | Sharp HUD glassmorphism design system |
+| **Styling** | Vanilla CSS + Tailwind CSS v4 | Soft modern glassmorphism design system |
 | **Telemetry API** | Where The ISS At? API | Real-time orbital vector and kinematics downlink |
-| **AI Copilot API** | DeepSeek AI API | Autonomous orbital dynamics intelligence (`deepseek-chat`) |
+| **AI Copilot API** | Google Gemini AI API | Autonomous orbital dynamics intelligence (`gemini-flash-latest`) |
 | **Mapping Engine** | Leaflet 1.9.4 & React-Leaflet 5.0 | Multi-layer interactive geospatial world map |
 | **Icons** | Lucide React | High-contrast vector icons (zero cartoon emojis) |
 | **Audio** | Native HTML5 Video + Web Audio API | Stereo 48kHz soundtrack + Quindar synthesizer |
-| **Testing** | Node.js Test Runner | 35/35 passing tests covering math, APIs, and validation |
+| **Testing** | Node.js Test Runner | 44/44 passing tests covering math, APIs, and validation |
 | **CI/CD** | GitHub Actions | Automated build & deploy to GitHub Pages |
 
 ---
@@ -98,7 +97,7 @@ Visit [http://localhost:3000](http://localhost:3000) to view the live dashboard.
 
 ### Run Quality Gates & Tests
 ```bash
-# Run 35 comprehensive automated tests
+# Run 44 comprehensive automated tests
 npm test
 
 # Run ESLint check
@@ -124,5 +123,84 @@ To enable GitHub Pages in your GitHub repository settings:
 ## 5. License & Credits
 Developed for the **Edzul 5-Day Development Challenge**.  
 - Real-Time Orbital Telemetry: [Where The ISS At? API](https://wheretheiss.at) by Bill Shupp.  
-- AI Orbital Copilot: [DeepSeek AI API](https://platform.deepseek.com) (`deepseek-chat`).  
+- AI Chatbot: [Google Gemini AI API](https://aistudio.google.com).  
 - Map Data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) and [CARTO](https://carto.com).
+
+2. Project Overview
+
+The ISS Tracker is a web application that displays real-time information about the International Space Station (ISS). It helps users understand the station's current location and orbital movement.
+
+3. Main Features
+
+- Displays the ISS location using live API data.
+- Shows telemetry information such as latitude, longitude, and altitude when available.
+- Provides an interactive space-themed dashboard.
+- Displays projected orbital paths and station information.
+- Includes an AI Chatbot for space-related and multi-domain questions.
+
+4. APIs Used
+
+Where the ISS At? API
+
+Used to retrieve ISS location and telemetry information.
+
+Google Gemini AI API
+
+Used to support AI Chatbot responses and space-related questions.
+
+Limitations:
+
+- Live data depends on API availability and internet connectivity.
+- API requests may fail due to server errors or rate limits.
+- AI responses may not always be accurate.
+- API keys must be protected and should never be published in the repository.
+
+5. Setup Instructions
+
+1. Open the project repository on GitHub.
+2. Download or clone the project to a computer.
+3. Install Node.js and npm.
+4. Open a terminal in the project folder.
+5. Run "npm install".
+6. Configure the required environment variables using the project's example environment file.
+7. Run "npm run dev".
+8. Open the local URL shown in the terminal to test the application.
+
+Note: Follow the actual scripts and configuration in "package.json" and the project documentation.
+
+6. Testing
+
+The project README reports 35 out of 35 tests passing. This should be verified against the latest test results.
+
+Testing checklist:
+
+- Check whether the application loads successfully.
+- Verify that live ISS information is displayed.
+- Check the displayed coordinates and telemetry.
+- Test the AI assistant if its API is configured.
+- Check the interface on mobile and desktop screens.
+- Test how the application responds when the internet or an API is unavailable.
+
+7. Demo Plan (3–5 Minutes)
+
+1. Introduction (30 seconds): Introduce the ISS Tracker and its purpose.
+2. Dashboard (1 minute): Show the interface and explain its main features.
+3. Live tracking (1 minute): Demonstrate the ISS location and available telemetry.
+4. AI assistant (1 minute): Show how the assistant answers a space-related question, if available.
+5. Testing and conclusion (30–60 seconds): Explain the tests, API limitations, and future improvements.
+
+8. Team Contributions
+
+- Project development: [Add the responsible team member's name and contribution.]
+- API integration: [Add the responsible team member's name and contribution.]
+- Documentation and demo: [Add your name and describe your work.]
+- Testing: [Add the responsible team member's name and contribution.]
+
+Update this section with the actual contributions of every team member.
+
+9. Future Improvements
+
+- Improve error handling when APIs are unavailable.
+- Add more detailed ISS tracking information.
+- Improve accessibility and mobile responsiveness.
+- Expand automated testing and documentation.

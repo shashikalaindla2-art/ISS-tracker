@@ -58,7 +58,7 @@ export default function ISSLogo({
           {!imageError ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={getAssetPath('/logo.png')}
+              src={getAssetPath('/logo.jpeg')}
               alt="ISS Tracker Official Aerospace Emblem"
               width={80}
               height={80}
@@ -148,13 +148,13 @@ export default function ISSLogo({
       <div className="leading-tight">
         <div className="flex items-center gap-2">
           <span
-            className={`font-black tracking-wider text-white uppercase font-sans ${
+            className={`font-semibold tracking-wider text-white uppercase font-sans ${
               isSm ? 'text-sm' : isLg ? 'text-2xl' : 'text-xl sm:text-2xl'
             }`}
           >
             ISS<span className="text-cyan-400">TRACKER</span>
           </span>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 tracking-wider">
+          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 tracking-wider">
             LIVE
           </span>
         </div>

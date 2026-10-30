@@ -3,7 +3,8 @@
 import React from 'react';
 
 /**
- * Reusable Metric Card for Modern Mission Control (Glassy Dark Aesthetic)
+ * Shiny Blue Aerospace Telemetry Card
+ * Uses Electric Cyan, Sapphire Blue, Silver, and Glassy styling with glowing indicator dots
  */
 export default function TelemetryCard({
   title,
@@ -17,72 +18,75 @@ export default function TelemetryCard({
   tooltip
 }) {
   const badgeStyles = {
-    default: 'bg-slate-900 text-slate-300 border-cyan-500/20',
-    cyan: 'bg-cyan-950/80 text-cyan-300 border-cyan-400/60 shadow-[0_0_8px_rgba(6,182,212,0.3)]',
-    amber: 'bg-amber-950/80 text-amber-300 border-amber-400/60 shadow-[0_0_8px_rgba(245,158,11,0.3)]',
-    indigo: 'bg-indigo-950/80 text-indigo-300 border-indigo-400/60',
-    emerald: 'bg-emerald-950/80 text-emerald-300 border-emerald-400/60 shadow-[0_0_8px_rgba(16,185,129,0.3)]',
-    rose: 'bg-rose-950/80 text-rose-300 border-rose-400/60'
+    default:  'bg-white/8 text-slate-300 border-white/15',
+    blue:     'bg-cyan-500/15 text-cyan-200 border-cyan-400/45 shadow-[0_0_12px_rgba(56,189,248,0.25)]',
+    gold:     'bg-cyan-500/15 text-cyan-200 border-cyan-400/45 shadow-[0_0_12px_rgba(56,189,248,0.25)]',
+    silver:   'bg-slate-200/10 text-slate-200 border-slate-300/30 shadow-[0_0_10px_rgba(226,232,240,0.15)]',
+    cyan:     'bg-cyan-500/15 text-cyan-200 border-cyan-400/45 shadow-[0_0_12px_rgba(6,182,212,0.25)]',
+    amber:    'bg-amber-500/15 text-amber-300 border-amber-400/40',
+    emerald:  'bg-emerald-500/15 text-emerald-300 border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]',
+    rose:     'bg-rose-500/15 text-rose-300 border-rose-400/40'
   };
 
   return (
     <div
-      className={`group relative rounded-none p-5 transition-all duration-300 border backdrop-blur-xl ${
+      className={`relative group flex flex-col justify-between p-4 rounded-2xl glass-panel transition-all duration-300 hover:-translate-y-1 ${
         highlight
-          ? 'bg-slate-950/85 border-cyan-400/60 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:border-cyan-300'
-          : 'bg-slate-950/75 hover:bg-slate-900/85 border-cyan-500/25 hover:border-cyan-400/50 shadow-xl'
-      } flex flex-col justify-between`}
+          ? 'glass-panel-blue border-cyan-400/50 shadow-[0_0_25px_rgba(56,189,248,0.25)]'
+          : 'hover:border-cyan-400/40 hover:shadow-[0_0_20px_rgba(56,189,248,0.15)]'
+      }`}
       title={tooltip}
     >
-      {/* Precision Corner Accent Marks */}
-      <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-cyan-400" />
-      <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-cyan-400" />
-      <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-cyan-400" />
-      <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-cyan-400" />
+      {/* Decorative Electric Blue Corner Indicator */}
+      <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-cyan-400/50 group-hover:bg-cyan-300 group-hover:scale-125 transition-all shadow-[0_0_6px_#38bdf8]" />
 
-      {/* Top Header: Title & Icon/Badge */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 group-hover:text-cyan-300 transition-colors">
+      {/* Top row: label + icon */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 group-hover:text-cyan-200 transition-colors">
           {title}
         </span>
-        <div className="flex items-center gap-1.5">
-          {badge && (
-            <span
-              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-none border ${
-                badgeStyles[badgeVariant] || badgeStyles.default
-              }`}
-            >
-              {badge}
-            </span>
-          )}
-          {Icon && (
-            <div className="p-1.5 rounded-none bg-slate-900 border border-cyan-500/30 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-all shadow-sm">
-              <Icon className="w-4 h-4" />
-            </div>
-          )}
-        </div>
+        {Icon && (
+          <div className={`p-1.5 rounded-xl transition-all ${
+            highlight
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+              : 'bg-white/8 text-slate-300 group-hover:bg-cyan-500/15 group-hover:text-cyan-300 group-hover:border group-hover:border-cyan-400/30'
+          }`}>
+            <Icon className="w-3.5 h-3.5" />
+          </div>
+        )}
       </div>
 
-      {/* Main Metric Value & Unit */}
-      <div className="my-1">
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-2xl md:text-3xl font-black tracking-tight text-white group-hover:text-cyan-200 transition-colors">
-            {value}
+      {/* Main value */}
+      <div className="flex items-baseline gap-1.5 mb-2.5">
+        <span className={`font-mono font-semibold tracking-tight ${
+          highlight
+            ? 'text-blue-gradient drop-shadow-[0_2px_14px_rgba(56,189,248,0.4)]'
+            : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'
+        } ${
+          String(value).length > 8 ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
+        }`}>
+          {value}
+        </span>
+        {unit && (
+          <span className="text-xs font-mono text-cyan-300/90 font-bold">{unit}</span>
+        )}
+      </div>
+
+      {/* Bottom: badge or subvalue */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/8">
+        {badge && (
+          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+            badgeStyles[badgeVariant] || badgeStyles.default
+          }`}>
+            {badge}
           </span>
-          {unit && (
-            <span className="font-mono text-xs font-bold text-slate-400">
-              {unit}
-            </span>
-          )}
-        </div>
+        )}
+        {subvalue && (
+          <span className="text-[10px] text-slate-300 font-mono font-medium ml-auto truncate">
+            {subvalue}
+          </span>
+        )}
       </div>
-
-      {/* Bottom Subvalue / Helper Text */}
-      {subvalue && (
-        <div className="mt-3 pt-2.5 border-t border-white/10 text-[11px] font-semibold text-slate-400 flex items-center justify-between">
-          <span>{subvalue}</span>
-        </div>
-      )}
     </div>
   );
 }

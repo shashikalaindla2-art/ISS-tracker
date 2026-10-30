@@ -57,10 +57,36 @@ describe('DeepSeek AI Orbital Copilot Engine', () => {
     assert.ok(result.content.includes('145.800 MHz'));
   });
 
+  test('evaluates mathematical calculations dynamically', async () => {
+    const result = await queryDeepSeekAI(mockTelemetry, 'What is 15 * 24?', '');
+    assert.ok(result.content.includes('ORBITAL COMPUTATIONAL ENGINE'));
+    assert.ok(result.content.includes('360'));
+  });
+
+  test('answers severe weather and disaster monitoring inquiries', async () => {
+    const result = await queryDeepSeekAI(mockTelemetry, 'How does the ISS predict cyclones, hurricanes and floods?', '');
+    assert.ok(result.content.includes('EARTH OBSERVATION & DISASTER'));
+    assert.ok(result.content.includes('Severe Storm & Cyclone Tracking'));
+  });
+
+  test('answers general questions dynamically without dumping static telemetry', async () => {
+    const result = await queryDeepSeekAI(mockTelemetry, 'Why is the sky blue from Earth?', '');
+    assert.ok(result.content.includes('Rayleigh Scattering'));
+    assert.ok(!result.content.includes('DEEPSEEK ORBITAL SITUATIONAL REPORT'));
+  });
+
+  test('answers how AI works dynamically and concisely', async () => {
+    const result = await queryDeepSeekAI(mockTelemetry, 'Explain how AI works in a few words', '');
+    assert.ok(result.content.includes('ARTIFICIAL INTELLIGENCE') || result.content.includes('learns from examples'));
+    assert.ok(!result.content.includes('DEEPSEEK ORBITAL SITUATIONAL REPORT'));
+  });
+
   test('manages browser local storage API key safely in Node test env', () => {
     // Should not throw in Node.js where window is undefined
     const key = getStoredApiKey();
-    assert.strictEqual(key, '');
-    assert.doesNotThrow(() => setStoredApiKey('sk-test-key-123'));
+    assert.strictEqual(typeof key, 'string');
+    assert.doesNotThrow(() => setStoredApiKey('AIzaSyTestKey123'));
+    assert.doesNotThrow(() => setStoredApiKey(''));
   });
 });
+

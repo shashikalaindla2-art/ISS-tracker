@@ -1,12 +1,13 @@
+import 'leaflet/dist/leaflet.css';
 import './globals.css';
 
 const siteUrl = 'https://srakshitha0802.github.io/ISS-tracker';
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'ISS Tracker — Live Space Station Tracker',
+  title: 'ISS Tracker — Live Real-Time Space Station Tracking',
   description:
-    'Track the International Space Station (ISS) in real time on an interactive world map. View live latitude, longitude, altitude, orbital velocity, ground distance radar, and flight path trajectory.',
+    'Track the International Space Station (ISS) in real time. View live telemetry, interactive CARTO map, orbital trajectory prediction, crew profiles, and ask the ORBITAL AI Chatbot.',
   keywords: [
     'ISS Tracker',
     'International Space Station',
@@ -15,39 +16,33 @@ export const metadata = {
     'NASA',
     'Space Station Telemetry',
     'Expedition 72',
-    'Orbital Mechanics'
+    'Orbital Mechanics',
+    'AI Chatbot',
+    'CARTO Maps'
   ],
-  authors: [{ name: 'Edzul Development Challenge Team' }],
+  authors: [{ name: 'ISS Tracker Team' }],
   icons: {
     icon: [
       { url: `${siteUrl}/icon.svg`, type: 'image/svg+xml' },
-      { url: `${siteUrl}/logo.png`, sizes: '1254x1254', type: 'image/png' }
+      { url: `${siteUrl}/logo.jpeg`, type: 'image/jpeg' }
     ],
-    apple: [
-      { url: `${siteUrl}/logo.png`, sizes: '180x180', type: 'image/png' }
-    ]
+    apple: [{ url: `${siteUrl}/logo.jpeg`, sizes: '180x180', type: 'image/jpeg' }]
   },
   openGraph: {
-    title: 'ISS Tracker — Live Space Station Tracker',
-    description: 'Track the International Space Station (ISS) in real time on an interactive world map. Live telemetry, trajectory prediction, and distance radar.',
+    title: 'ISS Tracker — Live Real-Time Space Station Tracking',
+    description:
+      'Live ISS telemetry, interactive CARTO map, AI-powered orbital analysis, and crew info. Production-ready.',
     url: siteUrl,
     siteName: 'ISS Tracker',
-    images: [
-      {
-        url: `${siteUrl}/logo.png`,
-        width: 1254,
-        height: 1254,
-        alt: 'ISS Tracker Official Aerospace Emblem'
-      }
-    ],
+    images: [{ url: `${siteUrl}/logo.jpeg`, alt: 'ISS Tracker' }],
     locale: 'en_US',
     type: 'website'
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ISS Tracker — Live Space Station Tracker',
-    description: 'Track the International Space Station (ISS) in real time on an interactive world map.',
-    images: [`${siteUrl}/logo.png`]
+    title: 'ISS Tracker — Live Real-Time Space Station Tracking',
+    description: 'Live ISS telemetry, interactive CARTO map, and AI-powered orbital intelligence.',
+    images: [`${siteUrl}/logo.jpeg`]
   }
 };
 
@@ -61,7 +56,16 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full dark">
-      <body className="min-h-full flex flex-col bg-transparent text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 antialiased">
+      <head>
+        {/* Soft Modern Google Fonts — Plus Jakarta Sans + Inter + JetBrains Mono */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-full flex flex-col bg-[#030a1c] text-slate-100 antialiased font-sans">
         {children}
       </body>
     </html>

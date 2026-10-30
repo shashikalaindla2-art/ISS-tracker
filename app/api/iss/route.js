@@ -1,37 +1,50 @@
 import { NextResponse } from 'next/server';
 import { validateISSPositionPayload } from '@/lib/validation';
-import { getSampleISSData } from '@/lib/sampleData';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 const PRIMARY_API_URL = 'https://api.wheretheiss.at/v1/satellites/25544';
+const REQUEST_TIMEOUT_MS = 6000;
 
 export async function GET() {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS
+  );
 
   try {
     const response = await fetch(PRIMARY_API_URL, {
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'User-Agent': 'ISSTracker-EdzulChallenge/1.0'
-      }
+      },
+      cache: 'no-store'
     });
-
-    clearTimeout(timeoutId);
 
     if (response.status === 429) {
       return NextResponse.json(
-        { error: 'Upstream rate limit exceeded (429). Please wait a moment before retrying.' },
-        { status: 429, headers: { 'Cache-Control': 'no-store' } }
+        {
+          error:
+            'Upstream rate limit exceeded (429). Please wait before retrying.'
+        },
+        {
+          status: 429,
+          headers: { 'Cache-Control': 'no-store' }
+        }
       );
     }
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: `Upstream API error: HTTP ${response.status} ${response.statusText}` },
-        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+        {
+          error: `Upstream API error: HTTP ${response.status} ${response.statusText}`
+        },
+        {
+          status: 502,
+          headers: { 'Cache-Control': 'no-store' }
+        }
       );
     }
 
@@ -40,8 +53,14 @@ export async function GET() {
 
     if (!validation.isValid) {
       return NextResponse.json(
-        { error: 'Malformed telemetry from upstream API', validationErrors: validation.errors },
-        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+        {
+          error: 'Malformed telemetry from upstream API',
+          validationErrors: validation.errors
+        },
+        {
+          status: 502,
+          headers: { 'Cache-Control': 'no-store' }
+        }
       );
     }
 
@@ -55,22 +74,29 @@ export async function GET() {
       {
         status: 200,
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0'
         }
       }
     );
-  } catch {
-    clearTimeout(timeoutId);
+  } catch (error) {
+    const isTimeout = error?.name === 'AbortError';
+
     return NextResponse.json(
       {
-        ...getSampleISSData(),
-        isDemo: true,
-        source: 'build-fallback',
-        fetchedAt: Date.now()
+        error: isTimeout
+          ? `ISS telemetry request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds.`
+          : 'Unable to retrieve live ISS telemetry.',
+        isDemo: false
       },
-      { status: 200 }
+      {
+        status: isTimeout ? 504 : 502,
+        headers: { 'Cache-Control': 'no-store' }
+      }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

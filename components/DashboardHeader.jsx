@@ -1,10 +1,29 @@
 'use client';
 
 import React from 'react';
-import { RefreshCw, Sparkles, Orbit, Compass, Users, Activity } from 'lucide-react';
+import {
+  RefreshCw,
+  Orbit,
+  Compass,
+  Users,
+  Activity,
+  Bot,
+  Satellite,
+  Zap,
+  Sparkles,
+  CloudLightning
+} from 'lucide-react';
 import ConnectionStatus from './ConnectionStatus';
-import ISSLogo from './ISSLogo';
-import { soundEffects } from '@/lib/audio';
+import DisasterAlertBell from './DisasterAlertBell';
+
+const NAV_TABS = [
+  { id: 'tracker', label: 'Orbital Tracker', icon: Orbit, color: 'blue' },
+  { id: 'weather', label: 'Disaster & Weather', icon: CloudLightning, color: 'blue', isNew: true },
+  { id: 'copilot', label: 'AI Chatbot', icon: Bot, color: 'blue', accent: true },
+  { id: 'sighting', label: 'Radar Pass', icon: Compass, color: 'silver' },
+  { id: 'physics', label: 'Physics Engine', icon: Activity, color: 'silver' },
+  { id: 'crew', label: 'Expedition 72', icon: Users, color: 'silver' }
+];
 
 export default function DashboardHeader({
   status,
@@ -13,107 +32,83 @@ export default function DashboardHeader({
   canManualRefresh = true,
   isSimulationMode = false,
   activeTab = 'tracker',
+  alerts = [],
   onSelectTab,
   onRefresh,
-  onToggleSimulation
+  onToggleSimulation,
+  onSelectAlert
 }) {
   return (
-    <header className="border-b border-cyan-500/30 bg-slate-950/85 backdrop-blur-2xl sticky top-0 z-40 shadow-[0_4px_30px_rgba(0,0,0,0.8)] transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Left Branding with Sharp Aerospace ISS Logo */}
-          <ISSLogo size="md" onClick={() => onSelectTab('tracker')} />
+    <header className="sticky top-0 z-40 px-3 sm:px-6 py-2.5 pointer-events-auto">
+      <div className="max-w-7xl mx-auto">
+        <div className="glass-panel px-4 sm:px-6 py-2.5 rounded-2xl flex items-center justify-between gap-3 border border-cyan-500/20 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
 
-          {/* Center Navigation Tabs - Sharp HUD Design */}
-          <div className="flex items-center bg-slate-950/90 p-1 rounded-none border border-cyan-500/30 gap-1 overflow-x-auto shadow-inner">
-            <button
-              type="button"
-              id="tab-tracker"
-              onClick={() => {
-                soundEffects.playClick();
-                onSelectTab('tracker');
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 ${
-                activeTab === 'tracker'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent'
-              }`}
-            >
-              <Orbit className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Flight Track</span>
-            </button>
+          {/* ── Brand with Shiny Electric Sapphire & Cyan Blue ── */}
+          <button
+            type="button"
+            onClick={() => onSelectTab('tracker')}
+            className="flex items-center gap-3 shrink-0 group text-left cursor-pointer"
+          >
+            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.5)] group-hover:scale-105 transition-transform border border-cyan-200/40">
+              <Satellite className="w-5 h-5 text-slate-950 font-semibold" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-300 border-2 border-slate-950 animate-ping" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm sm:text-base font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors font-display">
+                  ISS <span className="text-blue-gradient font-bold">TRACKER</span>
+                </span>
+                <span className="hidden md:inline-block text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-400/15 border border-cyan-400/40 text-cyan-200 font-mono font-medium">
+                  PRO
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]" />
+                <span className="text-[10px] text-slate-300 font-mono font-medium">NORAD #25544 · LEO</span>
+              </div>
+            </div>
+          </button>
 
-            <button
-              type="button"
-              id="tab-sighting"
-              onClick={() => {
-                soundEffects.playClick();
-                onSelectTab('sighting');
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 ${
-                activeTab === 'sighting'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5 text-amber-400" />
-              <span>Distance Radar</span>
-            </button>
+          {/* ── Geometric Glassy Navigation Tabs (Shiny Blue) ── */}
+          <nav className="hidden lg:flex items-center gap-1 p-1 rounded-xl bg-black/40 border border-white/8" aria-label="Main navigation">
+            {NAV_TABS.map(({ id, label, icon: Icon, accent, isNew }) => {
+              const isActive = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  id={`tab-${id}`}
+                  onClick={() => onSelectTab(id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-500/30 via-sky-400/20 to-blue-500/30 text-cyan-100 border border-cyan-400/60 shadow-[0_0_16px_rgba(56,189,248,0.3)] font-bold'
+                      : 'text-slate-300 hover:text-white hover:bg-white/6 border border-transparent'
+                  } ${accent && !isActive ? 'text-cyan-300' : ''}`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-300' : 'text-slate-400'} ${accent && !isActive ? 'animate-pulse text-cyan-300' : ''}`} />
+                  <span>{label}</span>
+                  {isNew && (
+                    <span className="px-1 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 text-[8px] font-mono border border-cyan-400/40 font-bold">
+                      RADAR
+                    </span>
+                  )}
+                  {accent && !isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
 
-            <button
-              type="button"
-              id="tab-physics"
-              onClick={() => {
-                soundEffects.playClick();
-                onSelectTab('physics');
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 ${
-                activeTab === 'physics'
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5 text-purple-400" />
-              <span>Solar & Physics</span>
-            </button>
+          {/* ── Right Controls ── */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Disaster Alert Bell with Badge */}
+            <DisasterAlertBell
+              alerts={alerts}
+              onSelectAlert={onSelectAlert}
+              onNavigateTab={onSelectTab}
+            />
 
-            <button
-              type="button"
-              id="tab-crew"
-              onClick={() => {
-                soundEffects.playClick();
-                onSelectTab('crew');
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 ${
-                activeTab === 'crew'
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.3)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 text-sky-400" />
-              <span>Crew (7)</span>
-            </button>
-
-            <button
-              type="button"
-              id="tab-copilot"
-              onClick={() => {
-                soundEffects.playQuindarBeep();
-                onSelectTab('copilot');
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider transition-all shrink-0 ${
-                activeTab === 'copilot'
-                  ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)]'
-                  : 'text-indigo-300 hover:text-white hover:bg-indigo-950/40 border border-indigo-500/30'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span>DeepSeek AI</span>
-            </button>
-          </div>
-
-          {/* Right Status & Action Controls - Sharp HUD Controls */}
-          <div className="flex items-center flex-wrap gap-2.5">
             <ConnectionStatus
               status={status}
               isDemo={isDemo}
@@ -124,39 +119,58 @@ export default function DashboardHeader({
             <button
               type="button"
               id="btn-toggle-simulation"
-              onClick={() => {
-                soundEffects.playClick();
-                onToggleSimulation();
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider border transition-all ${
+              onClick={onToggleSimulation}
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                 isSimulationMode
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-                  : 'bg-slate-950/80 text-slate-300 border-cyan-500/30 hover:bg-slate-900 hover:text-white hover:border-cyan-400'
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50 shadow-[0_0_12px_rgba(56,189,248,0.25)]'
+                  : 'bg-white/5 text-slate-300 border-white/10 hover:text-white hover:border-cyan-400/40'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>{isSimulationMode ? 'Exit Demo' : 'Simulate Demo'}</span>
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{isSimulationMode ? 'Simulation Active' : 'Simulate'}</span>
             </button>
 
-            {/* Manual Refresh Button */}
+            {/* Manual Refresh Button (Shiny Blue Sheen) */}
             <button
               type="button"
               id="btn-manual-refresh"
-              onClick={() => {
-                soundEffects.playQuindarBeep();
-                onRefresh();
-              }}
+              onClick={onRefresh}
               disabled={!canManualRefresh || isManualRefreshing}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-none text-xs font-mono font-bold uppercase tracking-wider border transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                 canManualRefresh && !isManualRefreshing
-                  ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)] cursor-pointer active:scale-95'
-                  : 'bg-slate-900 text-slate-500 border-white/5 cursor-not-allowed'
+                  ? 'bg-gradient-to-r from-cyan-500/25 via-sky-500/20 to-blue-500/25 text-cyan-100 border-cyan-400/50 hover:border-cyan-300 hover:shadow-[0_0_18px_rgba(56,189,248,0.4)] cursor-pointer active:scale-95'
+                  : 'bg-white/5 text-slate-500 border-white/6 cursor-not-allowed'
               }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isManualRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isManualRefreshing ? 'Polling...' : 'Refresh'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isManualRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isManualRefreshing ? 'Polling…' : 'Sync'}</span>
             </button>
           </div>
+        </div>
+
+        {/* Mobile Navigation Strip */}
+        <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto scrollbar-thin py-2 px-1 mt-1">
+          {NAV_TABS.map(({ id, label, icon: Icon, accent, isNew }) => {
+            const isActive = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onSelectTab(id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'glass-panel-blue text-cyan-200 border-cyan-400/60 font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+                    : 'glass-panel text-slate-300 hover:text-white'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-300' : 'text-slate-400'}`} />
+                <span>{label}</span>
+                {isNew && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </header>

@@ -1,67 +1,71 @@
 'use client';
 
 import React from 'react';
-import { Wifi, WifiOff, AlertTriangle, RefreshCw, Radio, Sparkles } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, RefreshCw, Radio, Zap } from 'lucide-react';
 
-export default function ConnectionStatus({ status, isDemo = false, isUpdating = false, errorMessage }) {
+const STATUS_CONFIG = {
+  LIVE: {
+    dot: 'bg-emerald-400',
+    ping: 'bg-emerald-400',
+    text: 'text-emerald-300',
+    container: 'border-emerald-500/20 bg-emerald-500/8',
+    label: 'Live'
+  },
+  UPDATING: {
+    dot: 'bg-cyan-400',
+    text: 'text-cyan-300',
+    container: 'border-cyan-500/20 bg-cyan-500/8',
+    label: 'Updating'
+  },
+  STALE: {
+    dot: 'bg-amber-400',
+    text: 'text-amber-300',
+    container: 'border-amber-500/20 bg-amber-500/8',
+    label: 'Stale'
+  },
+  ERROR: {
+    dot: 'bg-rose-400',
+    text: 'text-rose-300',
+    container: 'border-rose-500/20 bg-rose-500/8',
+    label: 'Error'
+  },
+  INITIAL_LOADING: {
+    dot: 'bg-slate-500',
+    text: 'text-slate-400',
+    container: 'border-white/8 bg-white/3',
+    label: 'Connecting'
+  }
+};
+
+export default function ConnectionStatus({ status, isDemo = false, isUpdating = false }) {
   if (isDemo) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-none bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)] backdrop-blur-md">
-        <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-        <span className="tracking-wider">DEMO TELEMETRY</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/20 bg-amber-500/8 text-amber-300 text-xs font-medium">
+        <Zap className="w-3 h-3" />
+        <span>Demo</span>
       </div>
     );
   }
 
-  switch (status) {
-    case 'LIVE':
-      return (
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-none bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-xs font-mono font-bold shadow-[0_0_15px_rgba(16,185,129,0.25)] backdrop-blur-md">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 bg-emerald-400"></span>
-          </span>
-          <span className="tracking-wider">LIVE TELEMETRY</span>
-        </div>
-      );
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.INITIAL_LOADING;
 
-    case 'UPDATING':
-      return (
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-none bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-bold shadow-[0_0_15px_rgba(6,182,212,0.25)] backdrop-blur-md">
-          <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-          <span className="tracking-wider">POLLING API...</span>
-        </div>
-      );
-
-    case 'STALE':
-      return (
-        <div
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-none bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold shadow-[0_0_15px_rgba(245,158,11,0.25)] backdrop-blur-md"
-          title={errorMessage || 'Using last known coordinates'}
-        >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span className="tracking-wider">STALE DATA</span>
-        </div>
-      );
-
-    case 'ERROR':
-      return (
-        <div
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-none bg-rose-500/20 border border-rose-400/50 text-rose-300 text-xs font-mono font-bold shadow-[0_0_15px_rgba(244,63,94,0.25)] backdrop-blur-md"
-          title={errorMessage || 'Connection failure'}
-        >
-          <WifiOff className="w-3.5 h-3.5 text-rose-400" />
-          <span className="tracking-wider">SIGNAL LOST</span>
-        </div>
-      );
-
-    case 'INITIAL_LOADING':
-    default:
-      return (
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-none bg-slate-900 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold backdrop-blur-md">
-          <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-          <span className="tracking-wider">ACQUIRING SIGNAL...</span>
-        </div>
-      );
-  }
+  return (
+    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${cfg.container} ${cfg.text}`}>
+      {status === 'LIVE' ? (
+        <span className="relative flex h-2 w-2">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${cfg.ping || cfg.dot} opacity-75`} />
+          <span className={`relative inline-flex h-2 w-2 rounded-full ${cfg.dot}`} />
+        </span>
+      ) : status === 'UPDATING' ? (
+        <RefreshCw className="w-3 h-3 animate-spin" />
+      ) : status === 'STALE' ? (
+        <AlertTriangle className="w-3 h-3" />
+      ) : status === 'ERROR' ? (
+        <WifiOff className="w-3 h-3" />
+      ) : (
+        <Radio className="w-3 h-3 animate-pulse" />
+      )}
+      <span>{cfg.label}</span>
+    </div>
+  );
 }

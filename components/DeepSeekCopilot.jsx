@@ -1,407 +1,491 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Sparkles,
   Bot,
   Send,
-  Key,
-  RefreshCw,
+  Trash2,
   Copy,
   Check,
-  Cpu,
+  Loader2,
+  Sparkles,
   Orbit,
   Radio,
   Zap,
-  Shield,
-  HelpCircle,
-  ExternalLink,
-  SlidersHorizontal,
-  FileText
+  Users,
+  Sun,
+  Globe,
+  AlertCircle,
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import {
   queryDeepSeekAI,
-  getStoredApiKey,
-  setStoredApiKey
+  getStoredApiKey
 } from '@/lib/deepseekApi';
-import { soundEffects } from '@/lib/audio';
 import { getGeographicRegion } from '@/lib/geocoding';
 
-const PRESET_QUERIES = [
-  {
-    label: 'Live Trajectory Briefing',
-    icon: Orbit,
-    prompt: 'Generate an immediate orbital situation report and flight dynamics briefing based on current telemetry.'
-  },
-  {
-    label: 'Orbital Free-Fall Physics',
-    icon: Zap,
-    prompt: 'Explain why the ISS remains in orbit at 27,600 km/h without falling, detailing centripetal force and atmospheric drag.'
-  },
-  {
-    label: 'Expedition 72 Science',
-    icon: Sparkles,
-    prompt: 'What microgravity experiments and biological investigations are Commander Sunita Williams and the Expedition 72 crew running today?'
-  },
-  {
-    label: 'HAM Radio & Doppler Shift',
-    icon: Radio,
-    prompt: 'What are the ARISS amateur radio downlink frequencies for the ISS, and calculate the Doppler shift at current orbital velocity?'
-  }
+// Suggested quick-ask prompts with gold and cyan accents
+const QUICK_PROMPTS = [
+  { icon: Sparkles, label: 'How AI Works', prompt: 'Explain how AI works in a few words' },
+  { icon: Orbit, label: 'Live Orbital Telemetry', prompt: 'Give me a live orbital telemetry briefing for the ISS right now.' },
+  { icon: Zap, label: 'Orbital Mechanics', prompt: 'Explain the physics of why the ISS maintains orbit without falling.' },
+  { icon: Users, label: 'Expedition 72 Crew', prompt: 'Who is on the Expedition 72 crew right now and what science are they performing?' },
+  { icon: Radio, label: 'Radio Frequencies', prompt: 'What frequencies does the ISS use for ARISS amateur radio downlinks and packets?' },
+  { icon: Sun, label: 'Solar Power System', prompt: 'How do the ISS solar arrays and Li-ion batteries manage orbital eclipse cycles?' },
+  { icon: Globe, label: 'Severe Weather Scan', prompt: 'How does the ISS detect cyclones, severe weather storms, and floods from space?' }
 ];
 
+// Renders markdown-like formatting in the assistant responses
+function FormattedMessage({ content }) {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  const elements = [];
+  let listBuffer = [];
+  let inNumberedList = false;
+
+  const flushList = () => {
+    if (listBuffer.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="space-y-1.5 my-2.5 pl-2">
+          {listBuffer.map((item, i) => (
+            <li key={i} className="flex gap-2.5 text-slate-200 text-xs sm:text-sm">
+              <span className="text-cyan-400 font-bold shrink-0 mt-0.5">{inNumberedList ? `${i + 1}.` : '▸'}</span>
+              <span dangerouslySetInnerHTML={{ __html: processInline(item) }} />
+            </li>
+          ))}
+        </ul>
+      );
+      listBuffer = [];
+      inNumberedList = false;
+    }
+  };
+
+  lines.forEach((line, i) => {
+    const numbered = line.match(/^(\d+)\.\s+(.+)/);
+    const bulleted = line.match(/^[-*•]\s+(.+)/);
+    const heading = line.match(/^\*\*(.+)\*\*$/);
+    const quote = line.match(/^>\s+(.+)/);
+    const empty = line.trim() === '';
+
+    if (heading) {
+      flushList();
+      elements.push(
+        <p key={i} className="font-semibold text-cyan-300 mt-3.5 mb-1.5 text-sm sm:text-base tracking-wide flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+          {heading[1]}
+        </p>
+      );
+    } else if (quote) {
+      flushList();
+      elements.push(
+        <div key={i} className="my-2.5 p-3 rounded-xl bg-amber-500/10 border-l-4 border-amber-400 text-xs text-amber-200 leading-relaxed">
+          <span dangerouslySetInnerHTML={{ __html: processInline(quote[1]) }} />
+        </div>
+      );
+    } else if (numbered) {
+      if (!inNumberedList) { flushList(); inNumberedList = true; }
+      listBuffer.push(numbered[2]);
+    } else if (bulleted) {
+      if (inNumberedList) { flushList(); }
+      listBuffer.push(bulleted[1]);
+    } else if (empty) {
+      flushList();
+      elements.push(<div key={i} className="h-1.5" />);
+    } else if (line.trim()) {
+      flushList();
+      elements.push(
+        <p
+          key={i}
+          className="text-slate-200 leading-relaxed text-xs sm:text-sm"
+          dangerouslySetInnerHTML={{ __html: processInline(line) }}
+        />
+      );
+    }
+  });
+
+  flushList();
+  return <div className="space-y-1">{elements}</div>;
+}
+
+function processInline(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan-200 font-bold">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="text-slate-300 italic">$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="bg-black/40 text-cyan-300 px-1.5 py-0.5 rounded text-[11px] font-mono border border-cyan-500/20">$1</code>');
+}
+
 export default function DeepSeekCopilot({ currentPosition }) {
-  const [apiKey, setApiKey] = useState(() => getStoredApiKey());
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [tempKeyInput, setTempKeyInput] = useState(() => getStoredApiKey());
-  const [customInput, setCustomInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState(null);
-  const [modelInfo, setModelInfo] = useState('deepseek-chat');
-  const [hasCopied, setHasCopied] = useState(false);
+  const [error, setError] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [activeModel, setActiveModel] = useState('Autonomous Onboard AI');
 
-  const terminalEndRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
-  // Compute live contextual data
+  // Initialize stored key on mount
+  useEffect(() => {
+    const stored = getStoredApiKey();
+    if (stored) {
+      setApiKey(stored);
+      setActiveModel(detectModelLabel(stored));
+    }
+  }, []);
+
   const region = currentPosition
     ? getGeographicRegion(currentPosition.latitude, currentPosition.longitude)
-    : { name: 'Earth Orbit' };
+    : { name: 'Low Earth Orbit' };
 
-  const telemetryContext = {
+  const telemetry = {
     latitude: currentPosition?.latitude || 0,
     longitude: currentPosition?.longitude || 0,
     altitude: currentPosition?.altitude || 420,
     velocity: currentPosition?.velocity || 27580,
     visibility: currentPosition?.visibility || 'daylight',
-    regionName: region.name
+    regionName: region.name,
+    footprint: currentPosition?.footprint || 4500,
+    timestamp: currentPosition?.timestamp || Math.floor(Date.now() / 1000)
   };
 
-  // Run analysis query
-  const executeQuery = async (queryText) => {
-    if (!queryText.trim() || isLoading) return;
-    soundEffects.playQuindarBeep();
-    setIsLoading(true);
+  function detectModelLabel(key) {
+    if (!key) return 'AI Chatbot (Online)';
+    if (key.startsWith('AIza') || key.startsWith('AQ.')) return 'AI Chatbot (Gemini)';
+    if (key.startsWith('gsk_')) return 'AI Chatbot (Groq)';
+    if (key.startsWith('sk-proj-')) return 'AI Chatbot (OpenAI)';
+    return 'AI Chatbot';
+  }
 
-    try {
-      const result = await queryDeepSeekAI(telemetryContext, queryText, apiKey);
-      setActiveAnalysis(result.content);
-      setModelInfo(result.model);
-      soundEffects.playRadarPing();
-    } catch (err) {
-      setActiveAnalysis(`ERROR: Failed to contact DeepSeek AI services: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Run initial briefing on first mount if none exists
+  // Initial welcome greeting
   useEffect(() => {
-    let isMounted = true;
-    const timer = setTimeout(() => {
-      if (isMounted && !activeAnalysis && currentPosition) {
-        executeQuery(PRESET_QUERIES[0].prompt);
+    if (!hasAutoGreeted && currentPosition) {
+      setHasAutoGreeted(true);
+      const greeting = {
+        role: 'assistant',
+        id: 'welcome',
+        model: activeModel,
+        content: `**ORBITAL AI CHATBOT ONLINE**
+
+Ground tracking verified. Cruising at **${Math.round(currentPosition.velocity || 27580).toLocaleString()} km/h** (~Mach ${((currentPosition.velocity || 27580) / 1236).toFixed(1)}) at **${Math.round(currentPosition.altitude || 420)} km** altitude over **${region.name}**.
+
+I am your real-time **AI Chatbot**, ready to answer any questions across all domains — from live ISS orbital dynamics, upcoming ground passes, and Expedition 72 crew experiments, to weather forecasts, natural disaster tracking, astronomy, mathematics, and general science.`
+      };
+      setMessages([greeting]);
+    }
+  }, [hasAutoGreeted, currentPosition, region.name, activeModel]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
+
+  const sendMessage = useCallback(
+    async (textToSend) => {
+      const query = (textToSend || input).trim();
+      if (!query || isLoading) return;
+
+      const userMessage = {
+        role: 'user',
+        content: query,
+        id: Date.now()
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+      setIsLoading(true);
+      setError(null);
+
+      const historyForApi = [...messages, userMessage].map((m) => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      try {
+        const result = await queryDeepSeekAI(historyForApi, telemetry, {
+          apiKey,
+          stream: false
+        });
+
+        if (result?.model) {
+          setActiveModel(result.model);
+        }
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: result.content,
+          model: result.model || activeModel,
+          id: Date.now() + 1
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (err) {
+        setError(err.message || 'Error communicating with AI Copilot.');
+      } finally {
+        setIsLoading(false);
+        inputRef.current?.focus();
       }
-    }, 0);
+    },
+    [input, messages, isLoading, telemetry, apiKey, activeModel]
+  );
 
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPosition?.latitude]);
-
-  const handleSaveKey = () => {
-    soundEffects.playClick();
-    setStoredApiKey(tempKeyInput);
-    setApiKey(tempKeyInput);
-    setShowKeyModal(false);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendMessage();
   };
 
-  const handleClearKey = () => {
-    soundEffects.playClick();
-    setStoredApiKey('');
-    setApiKey('');
-    setTempKeyInput('');
-    setShowKeyModal(false);
+  const handleCopy = (id, content) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleCopy = () => {
-    if (!activeAnalysis) return;
-    navigator.clipboard.writeText(activeAnalysis);
-    setHasCopied(true);
-    soundEffects.playClick();
-    setTimeout(() => setHasCopied(false), 2000);
+  const clearChat = () => {
+    setMessages([]);
+    setError(null);
+    setHasAutoGreeted(false);
   };
+
+
+
+  const isEmpty = messages.length === 0 && !isLoading;
 
   return (
-    <div className="bg-slate-950/85 rounded-none p-6 md:p-8 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-white font-mono relative space-y-6">
-      {/* Corner Notches */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-cyan-400" />
-      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-cyan-400" />
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-cyan-400" />
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-cyan-400" />
+    <div className="flex flex-col h-full rounded-2xl glass-panel-blue border border-cyan-400/40 overflow-hidden shadow-2xl relative">
+      {/* ── Cyan Corner Accent Brackets ── */}
+      <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-cyan-400 pointer-events-none z-20" />
+      <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-cyan-400 pointer-events-none z-20" />
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-cyan-500/20">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-cyan-500/20 bg-black/50 backdrop-blur-2xl shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-none bg-indigo-950/80 border border-indigo-400/60 flex items-center justify-center text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-            <Bot className="w-6 h-6 animate-pulse" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.5)] border border-cyan-200/40">
+              <Bot className="w-5 h-5 text-slate-950 font-bold" />
+            </div>
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-300 border-2 border-slate-950 shadow-[0_0_8px_#38bdf8]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <span>DeepSeek Orbital Copilot</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-none bg-indigo-950 text-indigo-300 border border-indigo-500/40 uppercase">
-                  AI Telemetry Analyst
-                </span>
+              <h3 className="text-sm sm:text-base font-semibold text-white tracking-tight font-display">
+                ORBITAL <span className="text-blue-gradient font-bold">AI CHATBOT</span>
               </h3>
-            </div>
-            <p className="text-xs text-slate-400">
-              Autonomous astrophysics copilot powered by the DeepSeek API • Real-time telemetry synthesis
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* API Key Modal Button */}
-          <button
-            type="button"
-            id="btn-deepseek-key-settings"
-            onClick={() => {
-              soundEffects.playClick();
-              setShowKeyModal(true);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer ${
-              apiKey
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border-cyan-500/30'
-            }`}
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>{apiKey ? 'API Key Active' : 'Configure DeepSeek Key'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => executeQuery(customInput || PRESET_QUERIES[0].prompt)}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-bold uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.4)] cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>{isLoading ? 'Reasoning...' : 'Re-Analyze'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Live Telemetry Ribbon Sent to DeepSeek */}
-      <div className="p-3 bg-slate-900/90 border border-cyan-500/20 text-xs flex flex-wrap items-center justify-between gap-3 text-slate-300">
-        <div className="flex items-center gap-2">
-          <Cpu className="w-4 h-4 text-cyan-400" />
-          <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">
-            DeepSeek Telemetry Feed:
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-[11px]">
-          <span className="bg-slate-950 px-2 py-0.5 border border-white/10">
-            Target: <strong className="text-white">{region.name}</strong>
-          </span>
-          <span className="bg-slate-950 px-2 py-0.5 border border-white/10">
-            Position: <strong className="text-white">{telemetryContext.latitude.toFixed(2)}°, {telemetryContext.longitude.toFixed(2)}°</strong>
-          </span>
-          <span className="bg-slate-950 px-2 py-0.5 border border-white/10">
-            Speed: <strong className="text-cyan-300">Mach {(telemetryContext.velocity / 1080).toFixed(1)}</strong>
-          </span>
-          <span className="bg-slate-950 px-2 py-0.5 border border-white/10">
-            Model: <strong className="text-indigo-300">{modelInfo}</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Preset Query Action Pills */}
-      <div className="space-y-2">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Orbital Inquiry Quick Actions:</span>
-        </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {PRESET_QUERIES.map((preset, idx) => {
-            const Icon = preset.icon;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  soundEffects.playClick();
-                  setCustomInput(preset.prompt);
-                  executeQuery(preset.prompt);
-                }}
-                disabled={isLoading}
-                className="flex items-center gap-2 p-2.5 text-left rounded-none bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/20 hover:border-cyan-400 text-slate-200 transition-all text-xs group cursor-pointer active:scale-95 disabled:opacity-50"
-              >
-                <div className="p-1.5 bg-slate-950 rounded-none border border-cyan-500/30 text-cyan-400 group-hover:text-cyan-300">
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-bold text-[11px] uppercase tracking-wider">
-                  {preset.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* DeepSeek Aerospace Readout Terminal */}
-      <div className="relative bg-slate-950 rounded-none border border-cyan-500/40 p-4 sm:p-6 shadow-inner">
-        {/* Terminal Title Bar */}
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-cyan-500/20 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-            <span className="text-cyan-300 font-bold uppercase tracking-wider">
-              DeepSeek AI Real-Time Telemetry Readout
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1 text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-cyan-500/30 transition-all cursor-pointer"
-            >
-              {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{hasCopied ? 'Copied' : 'Copy'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Output Area */}
-        {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center space-y-3 text-cyan-300">
-            <Bot className="w-8 h-8 animate-bounce text-cyan-400" />
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 bg-cyan-400 animate-ping rounded-full" />
-              <span>DeepSeek AI synthesizing orbital mechanics...</span>
-            </div>
-          </div>
-        ) : activeAnalysis ? (
-          <div className="text-xs sm:text-sm text-slate-200 leading-relaxed font-mono whitespace-pre-line space-y-2 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-            {activeAnalysis}
-          </div>
-        ) : (
-          <div className="text-center py-10 text-slate-500 text-xs">
-            Select an orbital inquiry or ask DeepSeek AI below.
-          </div>
-        )}
-        <div ref={terminalEndRef} />
-      </div>
-
-      {/* Interactive Custom Prompt Input */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          executeQuery(customInput);
-        }}
-        className="flex items-center gap-2"
-      >
-        <div className="relative flex-1">
-          <input
-            type="text"
-            id="input-deepseek-query"
-            value={customInput}
-            onChange={(e) => setCustomInput(e.target.value)}
-            placeholder="Ask DeepSeek AI (e.g. 'Calculate orbital decay at 420km with current solar flux')..."
-            className="w-full bg-slate-900/90 text-white placeholder-slate-500 text-xs px-4 py-3 border border-cyan-500/40 rounded-none focus:outline-none focus:border-cyan-300 shadow-inner font-mono"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isLoading || !customInput.trim()}
-          className="flex items-center gap-2 px-5 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-none border border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)] cursor-pointer disabled:opacity-50 transition-all active:scale-95"
-        >
-          <Send className="w-3.5 h-3.5" />
-          <span>Ask DeepSeek</span>
-        </button>
-      </form>
-
-      {/* DeepSeek API Key Configuration Modal */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-950 border border-cyan-500/50 p-6 max-w-md w-full shadow-[0_0_40px_rgba(6,182,212,0.3)] space-y-4 font-mono text-white relative">
-            <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
-              <div className="flex items-center gap-2 text-cyan-300 font-bold text-sm uppercase">
-                <Key className="w-4 h-4 text-cyan-400" />
-                <span>DeepSeek API Configuration</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowKeyModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Enter your official DeepSeek API Key (<code className="text-cyan-300">sk-...</code>) to unlock live direct requests to <strong className="text-white">api.deepseek.com</strong>.
-            </p>
-
-            <div className="space-y-1.5">
-              <label htmlFor="deepseek-api-key" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                DeepSeek API Key:
-              </label>
-              <input
-                id="deepseek-api-key"
-                type="password"
-                value={tempKeyInput}
-                onChange={(e) => setTempKeyInput(e.target.value)}
-                placeholder="sk-..."
-                className="w-full bg-slate-900 border border-cyan-500/40 text-white text-xs p-2.5 rounded-none font-mono focus:border-cyan-300 focus:outline-none"
-              />
-              <span className="text-[10px] text-slate-400 block pt-1">
-                Stored strictly in your local browser storage. Never transmitted to third-party tracking servers.
+              <span className="hidden sm:inline-block text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 font-mono font-medium">
+                ● {activeModel.toUpperCase()}
               </span>
             </div>
+            <p className="text-[11px] text-slate-300 font-mono font-normal">
+              Live AI Intelligence · Multi-Domain Q&A Engine
+            </p>
+          </div>
+        </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-cyan-500/20">
-              {apiKey ? (
-                <button
-                  type="button"
-                  onClick={handleClearKey}
-                  className="px-3 py-1.5 bg-rose-950 text-rose-300 border border-rose-500/40 text-xs font-bold uppercase hover:bg-rose-900 transition-colors"
-                >
-                  Remove Key
-                </button>
-              ) : (
-                <a
-                  href="https://platform.deepseek.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Get API Key</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+        <div className="flex items-center gap-2">
+          {/* Overflight region pill */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full badge-blue text-[10px] font-mono font-medium">
+            <Globe className="w-3 h-3 text-cyan-400" />
+            {region.name}
+          </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowKeyModal(false)}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold uppercase"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveKey}
-                  className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider border border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
-                >
-                  Save Key
-                </button>
+          {/* Clear chat */}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={clearChat}
+              title="Clear conversation"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/8 transition-all cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Message Feed ── */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 min-h-0 scrollbar-thin">
+        {/* Empty state — quick prompt grid */}
+        {isEmpty && (
+          <div className="flex flex-col items-center justify-center h-full gap-6 py-8">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cyan-500/25 via-sky-400/20 to-blue-500/25 border border-cyan-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(56,189,248,0.3)]">
+                <Sparkles className="w-8 h-8 text-cyan-300 animate-pulse" />
+              </div>
+              <h4 className="text-lg font-semibold text-white font-display">Ask AI Chatbot Anything</h4>
+              <p className="text-xs text-slate-300 max-w-sm font-normal">
+                Equipped with live ISS telemetry, orbital physics, severe weather tracking, and general science intelligence.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 w-full max-w-2xl">
+              {QUICK_PROMPTS.map((p, i) => {
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => sendMessage(p.prompt)}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl glass-panel hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(56,189,248,0.2)] text-left transition-all group cursor-pointer hover:-translate-y-0.5"
+                  >
+                    <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 group-hover:scale-110 transition-transform">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-200 leading-tight">
+                      {p.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Conversation messages */}
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+          >
+            {/* Avatar */}
+            {msg.role === 'assistant' && (
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center shrink-0 mt-0.5 shadow-[0_0_15px_rgba(56,189,248,0.4)] border border-cyan-300/40">
+                <Bot className="w-4 h-4 text-slate-950 font-bold" />
+              </div>
+            )}
+
+            {/* Bubble */}
+            <div className={`group relative max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+              <div
+                className={`px-4 sm:px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-gradient-to-br from-cyan-500/30 via-sky-500/25 to-blue-600/30 border border-cyan-400/50 text-white rounded-tr-sm shadow-[0_4px_20px_rgba(56,189,248,0.25)]'
+                    : 'glass-panel-silver rounded-tl-sm text-slate-100 shadow-[0_6px_24px_rgba(0,0,0,0.5)] border border-white/15'
+                }`}
+              >
+                {msg.role === 'assistant' ? (
+                  <FormattedMessage content={msg.content} />
+                ) : (
+                  <span className="font-medium text-white">{msg.content}</span>
+                )}
+              </div>
+
+              {/* Bottom tag & copy button */}
+              <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-mono">
+                {msg.model && (
+                  <span className="text-cyan-300/80 font-semibold">{msg.model}</span>
+                )}
+                {msg.role === 'assistant' && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(msg.id, msg.content)}
+                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-slate-400 hover:text-cyan-300 transition-opacity cursor-pointer"
+                  >
+                    {copiedId === msg.id ? (
+                      <><Check className="w-3 h-3 text-emerald-400" /> Copied</>
+                    ) : (
+                      <><Copy className="w-3 h-3" /> Copy</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
+        ))}
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex gap-3 flex-row">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shrink-0 mt-0.5 shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+              <Bot className="w-4 h-4 text-slate-950 font-bold" />
+            </div>
+            <div className="max-w-[85%] px-5 py-3.5 rounded-2xl rounded-tl-sm glass-panel-silver flex items-center gap-3">
+              <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+              <span className="text-xs font-mono text-cyan-200">
+                ORBITAL Intelligence is synthesizing response…
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-xs text-red-200">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+            <div className="space-y-1">
+              <span className="font-bold">Notice:</span>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* ── Quick Prompts Row (when chat is active) ── */}
+      {messages.length > 0 && !isLoading && (
+        <div className="px-4 pb-2.5 flex gap-2 overflow-x-auto scrollbar-thin shrink-0">
+          {QUICK_PROMPTS.slice(0, 4).map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => sendMessage(p.prompt)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel hover:border-cyan-400/40 text-[11px] font-medium text-slate-300 hover:text-cyan-200 transition-all cursor-pointer"
+            >
+              <p.icon className="w-3 h-3 text-cyan-400" />
+              {p.label}
+            </button>
+          ))}
         </div>
       )}
+
+      {/* ── Input Bar ── */}
+      <div className="px-4 py-4 border-t border-cyan-500/20 bg-black/55 backdrop-blur-2xl shrink-0">
+        <form onSubmit={handleSubmit} className="flex items-end gap-3">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef}
+              id="orbital-chat-input"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder="Ask anything — orbit physics, weather, math calculations, science, space facts…"
+              rows={1}
+              disabled={isLoading}
+              className="w-full resize-none bg-black/50 border border-cyan-500/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none transition-all disabled:opacity-50 pr-10 shadow-inner font-sans"
+              style={{ minHeight: '44px', maxHeight: '120px' }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="w-11 h-11 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.5)] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-slate-950 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 text-slate-950 font-bold" />
+            )}
+          </button>
+        </form>
+        <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 px-1">
+          <span>Press Enter to send · Shift+Enter for newline</span>
+          <span className="flex items-center gap-1 text-cyan-300 font-mono">
+            <ShieldCheck className="w-3 h-3 text-cyan-400" />
+            {apiKey ? 'API Key Active' : 'Autonomous Engine Active'}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

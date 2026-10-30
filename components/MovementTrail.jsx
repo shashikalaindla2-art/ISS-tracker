@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Route, Trash2, Eye, EyeOff, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Route, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatLatitude, formatLongitude, formatAltitude, formatVelocity } from '@/lib/formatters';
-import { soundEffects } from '@/lib/audio';
 
 export default function MovementTrail({
   trail = [],
@@ -14,44 +13,33 @@ export default function MovementTrail({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="rounded-none border border-cyan-500/30 bg-slate-950/80 shadow-2xl backdrop-blur-xl overflow-hidden text-white">
-      {/* Header bar */}
-      <div className="p-5 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-500/20">
+    <div className="rounded-2xl glass-panel border border-cyan-500/20 overflow-hidden text-white shadow-2xl">
+      {/* Header */}
+      <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/15 bg-black/40">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-none bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.2)]">
-            <Route className="w-5 h-5 text-cyan-400" />
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 flex items-center justify-center shadow-[0_0_12px_rgba(56,189,248,0.25)]">
+            <Route className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-mono font-black text-white uppercase tracking-wider">
-                Recorded Flight Path
-              </h3>
-              <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-none bg-cyan-950/80 text-cyan-300 border border-cyan-500/40">
-                {trail.length} / 30 Observations
-              </span>
-            </div>
-            <p className="text-xs font-mono text-slate-400">
-              Real-time sequence of orbital points recorded during your browser session
+            <h3 className="text-sm font-bold text-white tracking-wide font-display">Orbital Ground Track History</h3>
+            <p className="text-[11px] text-slate-300 font-mono">
+              {trail.length} telemetry points recorded this session
             </p>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 font-mono">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             id="btn-trail-visibility"
-            onClick={() => {
-              soundEffects.playClick();
-              onToggleTrail();
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-bold border transition-colors ${
+            onClick={onToggleTrail}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
               isTrailVisible
-                ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/60 hover:bg-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.2)]'
-                : 'bg-slate-900 text-slate-400 border-white/10 hover:bg-slate-800'
+                ? 'badge-blue font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+                : 'glass-panel text-slate-400 hover:text-white'
             }`}
           >
-            {isTrailVisible ? <Eye className="w-4 h-4 text-cyan-400" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+            {isTrailVisible ? <Eye className="w-3.5 h-3.5 text-cyan-300" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
             <span>{isTrailVisible ? 'Trail Active' : 'Trail Hidden'}</span>
           </button>
 
@@ -59,90 +47,60 @@ export default function MovementTrail({
             <button
               type="button"
               id="btn-trail-clear"
-              onClick={() => {
-                soundEffects.playClick();
-                onClearTrail();
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-none text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition-colors cursor-pointer"
+              onClick={onClearTrail}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 transition-all cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear Trail</span>
+              Reset Trail
             </button>
           )}
 
           <button
             type="button"
-            id="btn-trail-toggle-expand"
-            onClick={() => {
-              soundEffects.playClick();
-              setIsExpanded(!isExpanded);
-            }}
-            className="p-1.5 rounded-none bg-slate-900 hover:bg-slate-800 text-slate-300 border border-cyan-500/30 transition-colors"
-            aria-label={isExpanded ? 'Collapse trail history' : 'Expand trail history'}
+            id="btn-trail-expand"
+            onClick={() => setIsExpanded((v) => !v)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold glass-panel text-slate-200 hover:text-white transition-all cursor-pointer"
           >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span>{isExpanded ? 'Collapse' : 'Expand Table'}</span>
+            {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-cyan-300" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Trajectory Disclaimer Alert */}
-      <div className="px-5 py-2.5 bg-slate-900/40 border-b border-white/10 flex items-center gap-2 text-xs font-medium text-cyan-200">
-        <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-        <span>
-          Note: This trail maps sequential observations from your current active browser session, not a full 92-minute orbit.
-        </span>
-      </div>
-
-      {/* History table */}
+      {/* Trail Table */}
       {trail.length === 0 ? (
-        <div className="p-8 text-center text-slate-400 text-xs font-medium">
-          <Route className="w-8 h-8 mx-auto mb-2 text-slate-500 animate-pulse" />
-          No movement points recorded yet. Points populate automatically every 7 seconds.
+        <div className="px-5 py-8 text-center text-slate-400 text-xs font-mono">
+          Accumulating trajectory vector points as ISS orbits…
         </div>
       ) : (
-        <div className={`overflow-x-auto transition-all ${isExpanded ? 'max-h-80' : 'max-h-44'} overflow-y-auto scrollbar-thin`}>
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-900/80 text-slate-400 sticky top-0 border-b border-white/10 font-bold backdrop-blur-md">
+        <div className={`overflow-x-auto ${isExpanded ? 'max-h-96' : 'max-h-52'} scrollbar-thin transition-all`}>
+          <table className="w-full text-xs font-mono">
+            <thead className="bg-black/50 text-cyan-300/90 text-[10px] uppercase tracking-wider sticky top-0 border-b border-cyan-500/15 backdrop-blur-md">
               <tr>
-                <th className="py-2.5 px-4">#</th>
-                <th className="py-2.5 px-4">Observation Time</th>
-                <th className="py-2.5 px-4">Latitude</th>
-                <th className="py-2.5 px-4">Longitude</th>
-                <th className="py-2.5 px-4">Altitude</th>
-                <th className="py-2.5 px-4">Velocity</th>
+                <th className="px-4 py-2.5 text-left font-bold">#</th>
+                <th className="px-4 py-2.5 text-left font-bold">Latitude</th>
+                <th className="px-4 py-2.5 text-left font-bold">Longitude</th>
+                <th className="px-4 py-2.5 text-left font-bold">Altitude</th>
+                <th className="px-4 py-2.5 text-left font-bold">Velocity</th>
+                <th className="px-4 py-2.5 text-right font-bold">Timestamp</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
-              {trail
-                .slice()
-                .reverse()
-                .map((pt, idx) => {
-                  const isLatest = idx === 0;
-                  return (
-                    <tr
-                      key={`${pt.timestamp}-${idx}`}
-                      className={`hover:bg-slate-800/40 transition-colors ${
-                        isLatest ? 'bg-cyan-950/30 text-cyan-200 font-bold' : 'text-slate-300'
-                      }`}
-                    >
-                      <td className="py-2 px-4 text-slate-400">
-                        {isLatest ? (
-                          <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                            LATEST
-                          </span>
-                        ) : (
-                          `#${trail.length - idx}`
-                        )}
-                      </td>
-                      <td className="py-2 px-4 text-slate-400">{pt.timeString || '—'}</td>
-                      <td className="py-2 px-4 font-bold text-cyan-300">{formatLatitude(pt.latitude)}</td>
-                      <td className="py-2 px-4 font-bold text-cyan-300">{formatLongitude(pt.longitude)}</td>
-                      <td className="py-2 px-4 text-white">{formatAltitude(pt.altitude)}</td>
-                      <td className="py-2 px-4 text-white">{formatVelocity(pt.velocity)}</td>
-                    </tr>
-                  );
-                })}
+            <tbody className="divide-y divide-white/6 text-slate-200">
+              {[...trail].reverse().map((pt, i) => (
+                <tr
+                  key={pt.timestamp || i}
+                  className={`hover:bg-cyan-500/10 transition-colors ${
+                    i === 0 ? 'bg-cyan-500/15 text-cyan-200 font-bold' : ''
+                  }`}
+                >
+                  <td className="px-4 py-2 text-slate-400">{trail.length - i}</td>
+                  <td className="px-4 py-2 font-medium">{formatLatitude(pt.latitude)}</td>
+                  <td className="px-4 py-2 font-medium">{formatLongitude(pt.longitude)}</td>
+                  <td className="px-4 py-2 text-slate-300">{formatAltitude(pt.altitude)}</td>
+                  <td className="px-4 py-2 text-slate-300">{formatVelocity(pt.velocity)}</td>
+                  <td className="px-4 py-2 text-right text-slate-400">{pt.timeString || '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

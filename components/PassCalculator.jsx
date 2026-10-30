@@ -20,7 +20,6 @@ export default function PassCalculator({ issPosition }) {
   const [isLocating, setIsLocating] = useState(false);
   const [geoError, setGeoError] = useState(null);
 
-  // Detect user geolocation
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
       setGeoError('Geolocation is not supported by your browser.');
@@ -49,7 +48,6 @@ export default function PassCalculator({ issPosition }) {
     );
   };
 
-  // Compute live distance metrics
   const distanceMetrics = useMemo(() => {
     if (!issPosition || typeof issPosition.latitude !== 'number' || typeof issPosition.longitude !== 'number') {
       return null;
@@ -62,74 +60,80 @@ export default function PassCalculator({ issPosition }) {
       issPosition.longitude
     );
 
-    const slantRange = calculateSlantRange(groundDist, issPosition.altitude || 420);
-    const elevation = calculateElevationAngle(groundDist, issPosition.altitude || 420);
-    const isVisibleNow = elevation > 10;
+    const slantRange = calculateSlantRange(
+      userLocation.lat,
+      userLocation.lon,
+      issPosition.latitude,
+      issPosition.longitude,
+      issPosition.altitude || 420
+    );
+
+    const elevation = calculateElevationAngle(
+      userLocation.lat,
+      userLocation.lon,
+      issPosition.latitude,
+      issPosition.longitude,
+      issPosition.altitude || 420
+    );
 
     return {
       groundDistKm: Math.round(groundDist),
       slantRangeKm: Math.round(slantRange),
-      elevationDeg: Number(elevation.toFixed(1)),
-      isVisibleNow
+      elevationDeg: Math.round(elevation),
+      isVisibleNow: elevation > 10
     };
-  }, [issPosition, userLocation]);
+  }, [userLocation, issPosition]);
 
   return (
-    <div className="bg-slate-950/80 rounded-none p-6 md:p-8 border border-cyan-500/30 shadow-2xl backdrop-blur-xl text-white font-mono relative">
-      {/* Corner Notches */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-cyan-400" />
-      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-cyan-400" />
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-cyan-400" />
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-cyan-400" />
+    <div className="glass-panel rounded-3xl p-6 md:p-8 border border-cyan-400/40 shadow-2xl relative overflow-hidden text-white font-mono">
+      {/* Cyan Corner Brackets */}
+      <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-cyan-400 pointer-events-none" />
+      <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-cyan-400 pointer-events-none" />
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-cyan-500/20">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-none bg-amber-950/80 border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
-            <Compass className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.25)]">
+            <Compass className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white uppercase tracking-wider">
-                ISS Distance & Sighting Radar
+              <h3 className="text-base font-semibold text-white tracking-wide font-display">
+                Ground Station Radar Range
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-none bg-amber-950/80 text-amber-300 border border-amber-500/40 uppercase">
-                Geodesic Range
+              <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full badge-blue">
+                Vector Calculation
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Calculate exact distance, elevation angle, and visual horizon sightings from your position
+            <p className="text-xs text-slate-300">
+              Real-time 3D slant range vector, horizon elevation, and visibility tracking
             </p>
           </div>
         </div>
 
-        {/* Location selector / detection button */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            id="btn-detect-location"
-            onClick={handleDetectLocation}
-            disabled={isLocating}
-            className="flex items-center gap-2 px-4 py-2 rounded-none text-xs font-bold uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.35)] border border-cyan-300 transition-all cursor-pointer active:scale-95"
-          >
-            <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-            <span>{isLocating ? 'Detecting...' : 'Detect My Location'}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleDetectLocation}
+          disabled={isLocating}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-semibold text-xs transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)] cursor-pointer active:scale-95 disabled:opacity-50"
+        >
+          <Navigation className={`w-3.5 h-3.5 text-slate-950 ${isLocating ? 'animate-spin' : ''}`} />
+          <span>{isLocating ? 'Detecting GPS…' : 'Use My GPS Location'}</span>
+        </button>
       </div>
 
       {geoError && (
-        <div className="mb-4 p-3 rounded-none bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+        <div className="mb-4 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-          <span>{geoError} (You can select any preset city below)</span>
+          <span>{geoError} (Select any preset observer station below)</span>
         </div>
       )}
 
       {/* Preset city pills */}
       <div className="mb-6">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 block flex items-center gap-1.5">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2.5 flex items-center gap-1.5 font-display">
           <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Select An Observer Ground Station:</span>
+          <span>Select Observer Ground Station:</span>
         </span>
         <div className="flex flex-wrap gap-2">
           {PRESET_CITIES.map((city) => {
@@ -142,13 +146,13 @@ export default function PassCalculator({ issPosition }) {
                   soundEffects.playClick();
                   setUserLocation(city);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-bold transition-all border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                   isSelected
-                    ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-cyan-500/20'
+                    ? 'badge-blue font-bold shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+                    : 'glass-panel text-slate-300 hover:text-white hover:border-cyan-400/40'
                 }`}
               >
-                <Globe className={`w-3 h-3 ${isSelected ? 'text-slate-950' : 'text-cyan-400'}`} />
+                <Globe className={`w-3 h-3 ${isSelected ? 'text-cyan-300' : 'text-slate-400'}`} />
                 <span>{city.name}</span>
               </button>
             );
@@ -159,55 +163,55 @@ export default function PassCalculator({ issPosition }) {
       {/* Real-time distance telemetry */}
       {distanceMetrics ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-none bg-slate-900/80 border border-cyan-500/20 shadow-lg">
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">
-              Observer Location
+          <div className="p-4 rounded-2xl glass-panel-silver">
+            <span className="text-[10px] font-medium text-cyan-300 uppercase tracking-wider block mb-1">
+              Observer Station
             </span>
-            <div className="text-base font-bold text-white flex items-center gap-2">
+            <div className="text-base font-medium text-white flex items-center gap-2">
               <MapPin className="w-4 h-4 text-cyan-400" />
               <span>{userLocation.name}</span>
             </div>
-            <span className="text-xs text-slate-400 block mt-1">
+            <span className="text-xs text-slate-400 font-mono block mt-1">
               {userLocation.lat}° N, {userLocation.lon}° E
             </span>
           </div>
 
-          <div className="p-4 rounded-none bg-slate-900/80 border border-cyan-500/20 shadow-lg">
-            <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">
-              Direct Slant Range (3D)
+          <div className="p-4 rounded-2xl glass-panel-silver">
+            <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider block mb-1">
+              Direct 3D Slant Range
             </span>
-            <div className="text-2xl font-black text-white">
-              {distanceMetrics.slantRangeKm.toLocaleString()} <span className="text-xs font-normal text-slate-400">km</span>
+            <div className="text-2xl font-semibold text-white">
+              {distanceMetrics.slantRangeKm.toLocaleString()} <span className="text-xs font-normal text-cyan-300">km</span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-1">
-              Straight-line space vector
+              Straight space line of sight
             </span>
           </div>
 
-          <div className="p-4 rounded-none bg-slate-900/80 border border-cyan-500/20 shadow-lg">
-            <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block mb-1">
-              Ground Arc Distance
+          <div className="p-4 rounded-2xl glass-panel-silver">
+            <span className="text-[10px] font-medium text-cyan-300 uppercase tracking-wider block mb-1">
+              Great-Circle Arc
             </span>
-            <div className="text-2xl font-black text-white">
-              {distanceMetrics.groundDistKm.toLocaleString()} <span className="text-xs font-normal text-slate-400">km</span>
+            <div className="text-2xl font-semibold text-white">
+              {distanceMetrics.groundDistKm.toLocaleString()} <span className="text-xs font-normal text-cyan-300">km</span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-1">
-              Earth surface great-circle arc
+              Earth curvature surface distance
             </span>
           </div>
 
-          <div className="p-4 rounded-none bg-slate-900/80 border border-cyan-500/20 shadow-lg">
-            <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider block mb-1">
+          <div className="p-4 rounded-2xl glass-panel-silver">
+            <span className="text-[10px] font-medium text-emerald-300 uppercase tracking-wider block mb-1">
               Sky Elevation Angle
             </span>
-            <div className="text-2xl font-black text-white flex items-center gap-2">
+            <div className="text-2xl font-semibold text-white flex items-center gap-2">
               <span>{distanceMetrics.elevationDeg}°</span>
               {distanceMetrics.isVisibleNow ? (
-                <span className="text-[10px] font-bold text-emerald-300 px-2 py-0.5 rounded-none bg-emerald-500/20 border border-emerald-500/40 uppercase">
+                <span className="text-[10px] font-medium text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 uppercase">
                   Above Horizon
                 </span>
               ) : (
-                <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 rounded-none bg-slate-800 border border-white/10 uppercase">
+                <span className="text-[10px] font-medium text-slate-400 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 uppercase">
                   Below Horizon
                 </span>
               )}
@@ -220,8 +224,8 @@ export default function PassCalculator({ issPosition }) {
           </div>
         </div>
       ) : (
-        <div className="text-center py-6 text-slate-400 text-xs">
-          Loading orbital trajectory telemetry...
+        <div className="p-6 text-center text-slate-400 text-xs">
+          Calculating distance vector to ISS…
         </div>
       )}
     </div>

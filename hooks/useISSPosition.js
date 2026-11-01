@@ -7,7 +7,7 @@ import { SAMPLE_ISS_DATA } from '@/lib/sampleData';
 const DEFAULT_POLL_INTERVAL_MS = 7000;
 const MAX_TRAIL_LENGTH = 30;
 const MANUAL_REFRESH_COOLDOWN_MS = 2500;
-
+const STALE_THRESHOLD_MS = 21000;
 /**
  * Hook to manage ISS live telemetry, polling, history trail, and lifecycle states.
  */
@@ -52,6 +52,26 @@ export function useISSPosition(options = {}) {
   useEffect(() => {
     currentPositionRef.current = currentPosition;
   }, [currentPosition]);
+  // Automatically detect stale ISS telemetry
+useEffect(() => {
+  if (!lastSuccessTime || isSimulationMode) return;
+
+  const checkStaleData = () => {
+    const dataAge = Date.now() - lastSuccessTime;
+
+    if (dataAge >= STALE_THRESHOLD_MS) {
+      setStatus((prev) =>
+        prev === 'ERROR' ? prev : 'STALE'
+      );
+    }
+  };
+
+  checkStaleData();
+
+  const staleTimer = setInterval(checkStaleData, 1000);
+
+  return () => clearInterval(staleTimer);
+}, [lastSuccessTime, isSimulationMode]);
 
   /**
    * Appends a valid observation to the trail history without duplicates.
@@ -311,7 +331,7 @@ export function useISSPosition(options = {}) {
     intervalMs,
     // Actions
     refresh: manualRefresh,
-    retry: () => executeFetch(true),
+    retry: manualRefresh,
     clearTrail,
     toggleFollow,
     toggleTrail,

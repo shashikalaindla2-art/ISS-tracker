@@ -10,10 +10,17 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_BASE_PATH: isGithubPages ? `/${repoName}` : '',
+    NEXT_PUBLIC_DEEPSEEK_API_KEY:
+      process.env.NEXT_PUBLIC_DEEPSEEK_API_KEY ||
+      process.env.DEEPSEEK_API_KEY ||
+      '',
     NEXT_PUBLIC_GEMINI_API_KEY:
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
       process.env.GEMINI_API_KEY ||
       '',
+    NEXT_PUBLIC_ISS_API_ENDPOINT:
+      process.env.NEXT_PUBLIC_ISS_API_ENDPOINT ||
+      'https://api.wheretheiss.at/v1/satellites/25544',
   },
   turbopack: {
     root: process.cwd(),

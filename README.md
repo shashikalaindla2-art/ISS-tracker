@@ -9,7 +9,7 @@
 
 An advanced, real-time aerospace flight telemetry and geospatial tracking web application for the **International Space Station (ISS, NORAD Catalog #25544)**. Powered by two primary APIs: the gold-standard **Where The ISS At? API** for real-time orbital vectors and the **Google Gemini AI API** for autonomous orbital AI Chatbot intelligence. Engineered with a sharp-edged mission control HUD aesthetic, audible 4K MP4 cosmic ambient soundtrack with 1-click unmuting and volume controls, precision Keplerian orbital mechanics, forward trajectory projections, 3D observer distance radar, and live Expedition 72 crew dossier.
 
-🌐 **Live URL**: [https://srakshitha0802.github.io/ISS-tracker/](https://srakshitha0802.github.io/ISS-tracker/)  
+🌐 **Live URL**: [https://iss-tracker-zeta-seven.vercel.app/](https://iss-tracker-zeta-seven.vercel.app/)  
 📦 **Repository**: [https://github.com/srakshitha0802/ISS-tracker](https://github.com/srakshitha0802/ISS-tracker)
 
 ---

@@ -6,9 +6,7 @@ import {
   Waves,
   CloudLightning,
   X,
-  ChevronRight,
-  ShieldAlert,
-  Volume2
+  ChevronRight
 } from 'lucide-react';
 import { soundEffects } from '@/lib/audio';
 
@@ -17,15 +15,14 @@ export default function DisasterNotificationToast({
   onDismiss,
   onViewDetails
 }) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [dismissedId, setDismissedId] = useState(null);
+  const isVisible = Boolean(alert && alert.id !== dismissedId);
 
   useEffect(() => {
-    if (alert) {
-      setIsVisible(true);
-      // Play high-tech alert chime
+    if (alert && alert.id !== dismissedId) {
       soundEffects.playWarningChime();
     }
-  }, [alert]);
+  }, [alert, dismissedId]);
 
   if (!alert || !isVisible) return null;
 
@@ -40,7 +37,7 @@ export default function DisasterNotificationToast({
 
   const handleClose = () => {
     soundEffects.playClick();
-    setIsVisible(false);
+    setDismissedId(alert.id);
     if (onDismiss) onDismiss();
   };
 
@@ -114,7 +111,7 @@ export default function DisasterNotificationToast({
                   onClick={() => {
                     soundEffects.playClick();
                     onViewDetails(alert);
-                    setIsVisible(false);
+                    setDismissedId(alert.id);
                   }}
                   className="mt-2 text-[11px] font-bold text-cyan-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
                 >

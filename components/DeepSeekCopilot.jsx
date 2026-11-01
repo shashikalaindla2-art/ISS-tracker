@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Bot,
   Send,
@@ -17,11 +17,15 @@ import {
   Globe,
   AlertCircle,
   ShieldCheck,
-  X
+  Key,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import {
   queryDeepSeekAI,
-  getStoredApiKey
+  getStoredApiKey,
+  setStoredApiKey,
+  testApiKeyConnection
 } from '@/lib/deepseekApi';
 import { getGeographicRegion } from '@/lib/geocoding';
 
@@ -35,6 +39,22 @@ const QUICK_PROMPTS = [
   { icon: Sun, label: 'Solar Power System', prompt: 'How do the ISS solar arrays and Li-ion batteries manage orbital eclipse cycles?' },
   { icon: Globe, label: 'Severe Weather Scan', prompt: 'How does the ISS detect cyclones, severe weather storms, and floods from space?' }
 ];
+
+function detectModelLabel(key) {
+  if (!key) return 'Autonomous Onboard AI';
+  if (key.startsWith('sk-') && !key.startsWith('sk-proj') && !key.startsWith('sk-or')) return 'DeepSeek Chat (V3)';
+  if (key.startsWith('AIza')) return 'Google Gemini';
+  if (key.startsWith('gsk_')) return 'Groq LLaMA 3.3';
+  if (key.startsWith('sk-proj-')) return 'OpenAI GPT-4o';
+  return 'AI Copilot';
+}
+
+function processInline(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan-200 font-bold">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="text-slate-300 italic">$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="bg-black/40 text-cyan-300 px-1.5 py-0.5 rounded text-[11px] font-mono border border-cyan-500/20">$1</code>');
+}
 
 // Renders markdown-like formatting in the assistant responses
 function FormattedMessage({ content }) {
@@ -109,40 +129,32 @@ function FormattedMessage({ content }) {
   return <div className="space-y-1">{elements}</div>;
 }
 
-function processInline(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan-200 font-bold">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em class="text-slate-300 italic">$1</em>')
-    .replace(/`([^`]+)`/g, '<code class="bg-black/40 text-cyan-300 px-1.5 py-0.5 rounded text-[11px] font-mono border border-cyan-500/20">$1</code>');
-}
-
 export default function DeepSeekCopilot({ currentPosition }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
-  const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [activeModel, setActiveModel] = useState('Autonomous Onboard AI');
+
+  const [apiKey, setApiKey] = useState(() => (typeof window !== 'undefined' ? getStoredApiKey() : ''));
+  const [activeModel, setActiveModel] = useState(() => detectModelLabel(typeof window !== 'undefined' ? getStoredApiKey() : ''));
+
+  // Key configuration modal state
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [tempKeyInput, setTempKeyInput] = useState('');
+  const [keyVerifyStatus, setKeyVerifyStatus] = useState(null); // { loading, ok, message }
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const hasAutoGreetedRef = useRef(false);
 
-  // Initialize stored key on mount
-  useEffect(() => {
-    const stored = getStoredApiKey();
-    if (stored) {
-      setApiKey(stored);
-      setActiveModel(detectModelLabel(stored));
-    }
-  }, []);
+  const region = useMemo(() => {
+    return currentPosition
+      ? getGeographicRegion(currentPosition.latitude, currentPosition.longitude)
+      : { name: 'Low Earth Orbit' };
+  }, [currentPosition]);
 
-  const region = currentPosition
-    ? getGeographicRegion(currentPosition.latitude, currentPosition.longitude)
-    : { name: 'Low Earth Orbit' };
-
-  const telemetry = {
+  const telemetry = useMemo(() => ({
     latitude: currentPosition?.latitude || 0,
     longitude: currentPosition?.longitude || 0,
     altitude: currentPosition?.altitude || 420,
@@ -150,34 +162,31 @@ export default function DeepSeekCopilot({ currentPosition }) {
     visibility: currentPosition?.visibility || 'daylight',
     regionName: region.name,
     footprint: currentPosition?.footprint || 4500,
-    timestamp: currentPosition?.timestamp || Math.floor(Date.now() / 1000)
-  };
-
-  function detectModelLabel(key) {
-    if (!key) return 'AI Chatbot (Online)';
-    if (key.startsWith('AIza') || key.startsWith('AQ.')) return 'AI Chatbot (Gemini)';
-    if (key.startsWith('gsk_')) return 'AI Chatbot (Groq)';
-    if (key.startsWith('sk-proj-')) return 'AI Chatbot (OpenAI)';
-    return 'AI Chatbot';
-  }
+    timestamp: currentPosition?.timestamp || 0
+  }), [currentPosition, region.name]);
 
   // Initial welcome greeting
   useEffect(() => {
-    if (!hasAutoGreeted && currentPosition) {
-      setHasAutoGreeted(true);
-      const greeting = {
-        role: 'assistant',
-        id: 'welcome',
-        model: activeModel,
-        content: `**ORBITAL AI CHATBOT ONLINE**
+    if (!hasAutoGreetedRef.current && currentPosition) {
+      hasAutoGreetedRef.current = true;
+      const modelLabel = detectModelLabel(apiKey);
+      const timer = setTimeout(() => {
+        setMessages([
+          {
+            role: 'assistant',
+            id: 'welcome',
+            model: modelLabel,
+            content: `**ORBITAL AI CHATBOT ONLINE**
 
 Ground tracking verified. Cruising at **${Math.round(currentPosition.velocity || 27580).toLocaleString()} km/h** (~Mach ${((currentPosition.velocity || 27580) / 1236).toFixed(1)}) at **${Math.round(currentPosition.altitude || 420)} km** altitude over **${region.name}**.
 
-I am your real-time **AI Chatbot**, ready to answer any questions across all domains — from live ISS orbital dynamics, upcoming ground passes, and Expedition 72 crew experiments, to weather forecasts, natural disaster tracking, astronomy, mathematics, and general science.`
-      };
-      setMessages([greeting]);
+I am your real-time **AI Chatbot**, powered by **DeepSeek AI** and orbital telemetry intelligence. Ask me anything — from live ISS orbital dynamics, upcoming ground passes, and Expedition 72 crew experiments, to weather forecasts, natural disaster tracking, astronomy, mathematics, and general science.`
+          }
+        ]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [hasAutoGreeted, currentPosition, region.name, activeModel]);
+  }, [currentPosition, region.name, apiKey]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -246,10 +255,40 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
   const clearChat = () => {
     setMessages([]);
     setError(null);
-    setHasAutoGreeted(false);
+    hasAutoGreetedRef.current = false;
   };
 
+  const handleOpenKeyModal = () => {
+    setTempKeyInput(apiKey);
+    setKeyVerifyStatus(null);
+    setShowKeyModal(true);
+  };
 
+  const handleSaveApiKey = async () => {
+    const trimmed = tempKeyInput.trim();
+    setKeyVerifyStatus({ loading: true, message: 'Verifying API connection…' });
+    const res = await testApiKeyConnection(trimmed);
+    if (res.ok) {
+      setStoredApiKey(trimmed);
+      setApiKey(trimmed);
+      setActiveModel(detectModelLabel(trimmed));
+      setKeyVerifyStatus({
+        loading: false,
+        ok: true,
+        message: `Verified successfully with ${res.provider} (${res.model})!`
+      });
+      setTimeout(() => {
+        setShowKeyModal(false);
+        setKeyVerifyStatus(null);
+      }, 1200);
+    } else {
+      setKeyVerifyStatus({
+        loading: false,
+        ok: false,
+        message: res.error || 'Connection verification failed.'
+      });
+    }
+  };
 
   const isEmpty = messages.length === 0 && !isLoading;
 
@@ -278,7 +317,7 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
               </span>
             </div>
             <p className="text-[11px] text-slate-300 font-mono font-normal">
-              Live AI Intelligence · Multi-Domain Q&A Engine
+              DeepSeek AI Intelligence · Multi-Domain Q&A Engine
             </p>
           </div>
         </div>
@@ -289,6 +328,17 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
             <Globe className="w-3 h-3 text-cyan-400" />
             {region.name}
           </div>
+
+          {/* Key configuration button */}
+          <button
+            type="button"
+            onClick={handleOpenKeyModal}
+            title="Configure DeepSeek API Key"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-cyan-500/30 hover:border-cyan-400 bg-cyan-950/40 text-cyan-300 hover:text-white transition-all text-[11px] font-mono cursor-pointer"
+          >
+            <Key className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden md:inline">{apiKey ? 'DeepSeek Active' : 'API Key'}</span>
+          </button>
 
           {/* Clear chat */}
           {messages.length > 0 && (
@@ -304,6 +354,93 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
         </div>
       </div>
 
+      {/* ── API Key Configuration Modal ── */}
+      {showKeyModal && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="glass-panel p-6 rounded-3xl border border-cyan-400/50 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="w-5 h-5 text-cyan-400" />
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+                  DeepSeek AI Configuration
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKeyModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Enter your DeepSeek API key (or Google Gemini/Groq/OpenAI key). Keys are stored locally in your browser.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider">
+                API Key
+              </label>
+              <input
+                type="password"
+                value={tempKeyInput}
+                onChange={(e) => setTempKeyInput(e.target.value)}
+                placeholder="sk-..."
+                className="w-full bg-black/60 border border-cyan-500/40 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              />
+              <p className="text-[10px] text-slate-400 font-mono">
+                Active Key: {apiKey ? `${apiKey.slice(0, 6)}••••${apiKey.slice(-4)}` : 'None (Using Autonomous Onboard Engine)'}
+              </p>
+            </div>
+
+            {keyVerifyStatus && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  keyVerifyStatus.loading
+                    ? 'bg-cyan-950/40 border border-cyan-400/30 text-cyan-200'
+                    : keyVerifyStatus.ok
+                    ? 'bg-emerald-950/40 border border-emerald-400/40 text-emerald-200'
+                    : 'bg-rose-950/40 border border-rose-400/40 text-rose-200'
+                }`}
+              >
+                {keyVerifyStatus.loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0 text-cyan-400" />
+                ) : keyVerifyStatus.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span>{keyVerifyStatus.message}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setStoredApiKey('');
+                  setApiKey('');
+                  setActiveModel(detectModelLabel(''));
+                  setShowKeyModal(false);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer"
+              >
+                Clear Key
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                disabled={keyVerifyStatus?.loading}
+                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 text-xs font-bold transition-all shadow-[0_0_15px_rgba(56,189,248,0.4)] disabled:opacity-50 cursor-pointer"
+              >
+                {keyVerifyStatus?.loading ? 'Verifying…' : 'Save & Verify'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Message Feed ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 min-h-0 scrollbar-thin">
         {/* Empty state — quick prompt grid */}
@@ -315,7 +452,7 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
               </div>
               <h4 className="text-lg font-semibold text-white font-display">Ask AI Chatbot Anything</h4>
               <p className="text-xs text-slate-300 max-w-sm font-normal">
-                Equipped with live ISS telemetry, orbital physics, severe weather tracking, and general science intelligence.
+                Equipped with DeepSeek AI, live ISS telemetry, orbital physics, severe weather tracking, and general science intelligence.
               </p>
             </div>
 
@@ -482,7 +619,7 @@ I am your real-time **AI Chatbot**, ready to answer any questions across all dom
           <span>Press Enter to send · Shift+Enter for newline</span>
           <span className="flex items-center gap-1 text-cyan-300 font-mono">
             <ShieldCheck className="w-3 h-3 text-cyan-400" />
-            {apiKey ? 'API Key Active' : 'Autonomous Engine Active'}
+            {apiKey ? 'DeepSeek Key Active' : 'Autonomous Engine Active'}
           </span>
         </div>
       </div>

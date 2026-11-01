@@ -8,13 +8,12 @@ import {
   Users,
   Activity,
   Bot,
-  Satellite,
   Zap,
-  Sparkles,
   CloudLightning
 } from 'lucide-react';
 import ConnectionStatus from './ConnectionStatus';
 import DisasterAlertBell from './DisasterAlertBell';
+import { getAssetPath } from '@/lib/basePath';
 
 const NAV_TABS = [
   { id: 'tracker', label: 'Orbital Tracker', icon: Orbit, color: 'blue' },
@@ -43,15 +42,22 @@ export default function DashboardHeader({
       <div className="max-w-7xl mx-auto">
         <div className="glass-panel px-4 sm:px-6 py-2.5 rounded-2xl flex items-center justify-between gap-3 border border-cyan-500/20 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
 
-          {/* ── Brand with Shiny Electric Sapphire & Cyan Blue ── */}
+          {/* ── Brand with Official Emblem Logo ── */}
           <button
             type="button"
             onClick={() => onSelectTab('tracker')}
             className="flex items-center gap-3 shrink-0 group text-left cursor-pointer"
           >
-            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.5)] group-hover:scale-105 transition-transform border border-cyan-200/40">
-              <Satellite className="w-5 h-5 text-slate-950 font-semibold" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-300 border-2 border-slate-950 animate-ping" />
+            <div className="relative w-10 h-10 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center p-0.5 shadow-[0_0_20px_rgba(56,189,248,0.5)] group-hover:scale-105 group-hover:border-cyan-300 transition-all">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getAssetPath('/logo.jpeg')}
+                alt="ISS Tracker Official Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover rounded-full"
+              />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-300 border-2 border-slate-950 animate-ping" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">

@@ -68,16 +68,10 @@ export default function WeatherDisasterPanel({ issPosition }) {
 
   // Custom API Modal state
   const [showApiModal, setShowApiModal] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState('');
+  const [customApiKey, setCustomApiKey] = useState(() => (
+    typeof window !== 'undefined' ? localStorage.getItem('CUSTOM_WEATHER_API_KEY') || '' : ''
+  ));
   const [savedKeySuccess, setSavedKeySuccess] = useState(false);
-
-  // Load custom key from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('CUSTOM_WEATHER_API_KEY') || '';
-      setCustomApiKey(stored);
-    }
-  }, []);
 
   const saveCustomApiKey = () => {
     soundEffects.playClick();
@@ -88,13 +82,24 @@ export default function WeatherDisasterPanel({ issPosition }) {
     }
   };
 
+  const effectiveLocation = useMemo(() => {
+    if (activeMode === 'iss' && issPosition && typeof issPosition.latitude === 'number') {
+      return {
+        name: 'Directly Below ISS Sub-Satellite Point',
+        lat: issPosition.latitude,
+        lon: issPosition.longitude
+      };
+    }
+    return selectedLocation;
+  }, [activeMode, issPosition, selectedLocation]);
+
   // Load Disasters and Weather
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (loc = effectiveLocation) => {
     setIsRefreshing(true);
     try {
       const [disasterList, weatherResult] = await Promise.all([
         fetchLiveDisasters(),
-        fetchWeatherForecast(selectedLocation.lat, selectedLocation.lon)
+        fetchWeatherForecast(loc.lat, loc.lon)
       ]);
 
       setDisasters(disasterList);
@@ -107,29 +112,38 @@ export default function WeatherDisasterPanel({ issPosition }) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedLocation.lat, selectedLocation.lon]);
+  }, [effectiveLocation]);
 
-  // When ISS moves in 'iss' mode, update coordinates if shifted significantly
   useEffect(() => {
-    if (activeMode === 'iss' && issPosition?.latitude !== undefined) {
-      setSelectedLocation((prev) => {
-        const diffLat = Math.abs((prev.lat || 0) - issPosition.latitude);
-        const diffLon = Math.abs((prev.lon || 0) - issPosition.longitude);
-        if (diffLat > 2 || diffLon > 2) {
-          return {
-            name: 'Directly Below ISS Sub-Satellite Point',
-            lat: issPosition.latitude,
-            lon: issPosition.longitude
-          };
+    let ignore = false;
+    async function fetchInitial() {
+      try {
+        const [disasterList, weatherResult] = await Promise.all([
+          fetchLiveDisasters(),
+          fetchWeatherForecast(effectiveLocation.lat, effectiveLocation.lon)
+        ]);
+        if (!ignore) {
+          setDisasters(disasterList);
+          setWeatherData(weatherResult);
+          setError(null);
         }
-        return prev;
-      });
+      } catch (err) {
+        if (!ignore) {
+          console.warn('Weather panel fetch warning:', err);
+          setError('Weather data synchronized via fallback engine.');
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      }
     }
-  }, [issPosition, activeMode]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchInitial();
+    return () => {
+      ignore = true;
+    };
+  }, [effectiveLocation.lat, effectiveLocation.lon]);
 
   // Correlate active disasters with ISS
   const correlatedDisasters = useMemo(() => {
@@ -479,7 +493,7 @@ export default function WeatherDisasterPanel({ issPosition }) {
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2 text-xs font-mono text-cyan-300">
                 <MapPin className="w-4 h-4 text-cyan-400" />
-                <span className="text-white font-bold">{selectedLocation.name}</span>
+                <span className="text-white font-bold">{effectiveLocation.name}</span>
                 <span className="text-slate-400">
                   ({weatherData.latitude.toFixed(2)}°, {weatherData.longitude.toFixed(2)}°)
                 </span>

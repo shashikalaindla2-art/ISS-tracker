@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, Radio, Globe, Terminal, Satellite, CloudLightning } from 'lucide-react';
+import { ExternalLink, Radio, Globe, Terminal, CloudLightning } from 'lucide-react';
+import { getAssetPath } from '@/lib/basePath';
 
 export default function Footer() {
   return (
@@ -11,8 +12,15 @@ export default function Footer() {
 
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.4)] border border-cyan-300/40">
-              <Satellite className="w-4 h-4 text-slate-950 font-bold" />
+            <div className="w-9 h-9 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center p-0.5 shadow-[0_0_15px_rgba(56,189,248,0.4)] shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getAssetPath('/logo.jpeg')}
+                alt="ISS Tracker Emblem"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover rounded-full"
+              />
             </div>
             <div>
               <div className="text-sm font-semibold text-white font-display">
@@ -28,7 +36,7 @@ export default function Footer() {
               { href: 'https://wheretheiss.at', icon: Radio, label: 'Where The ISS At?' },
               { href: 'https://eonet.gsfc.nasa.gov', icon: CloudLightning, label: 'NASA EONET' },
               { href: 'https://open-meteo.com', icon: Globe, label: 'Open-Meteo' },
-              { href: 'https://aistudio.google.com', icon: Terminal, label: 'AI Chatbot' }
+              { href: 'https://platform.deepseek.com', icon: Terminal, label: 'DeepSeek AI' }
             ].map(({ href, icon: Icon, label }) => (
               <a
                 key={href}
@@ -48,7 +56,7 @@ export default function Footer() {
         {/* Bottom line */}
         <div className="mt-5 pt-5 border-t border-white/8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[10px] text-slate-400 font-mono">
           <span>Orbital inclination 51.64° · Period 92.7 min · 15.54 rev/day · Expedition 72</span>
-          <span className="text-cyan-300 font-bold">NASA EONET + Open-Meteo Weather & Flood Early Warning Active</span>
+          <span className="text-cyan-300 font-bold">DeepSeek AI + NASA EONET + Open-Meteo Weather Active</span>
         </div>
       </div>
     </footer>

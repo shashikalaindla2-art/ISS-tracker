@@ -52,7 +52,7 @@ export default function ISSLogo({
       {/* Light Curve Emblem Container without harsh edges/highlights */}
       <div className="relative shrink-0">
         <div
-          className={`relative ${badgeSize} rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 flex items-center justify-center p-1 transition-all duration-300 group-hover:border-cyan-400/40 group-hover:bg-slate-800/80`}
+          className={`relative ${badgeSize} rounded-full bg-slate-900/80 backdrop-blur-md border border-cyan-500/30 flex items-center justify-center p-0.5 shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 group-hover:border-cyan-400 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.45)] group-hover:scale-105`}
         >
           {/* Official Mission Emblem Image or Precision Vector Fallback */}
           {!imageError ? (
@@ -63,7 +63,7 @@ export default function ISSLogo({
               width={80}
               height={80}
               onError={() => setImageError(true)}
-              className={`${iconSize} object-cover rounded-xl transition-transform duration-300 group-hover:scale-105`}
+              className={`${iconSize} object-cover rounded-full transition-transform duration-300`}
             />
           ) : (
             /* High-Precision ISS Vector SVG Fallback */

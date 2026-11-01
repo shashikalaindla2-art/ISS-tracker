@@ -22,23 +22,33 @@ export async function POST(request) {
        process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
        '').trim();
     const envKey =
-      geminiKey ||
-      process.env.DEEPSEEK_API_KEY ||
-      process.env.GROQ_API_KEY ||
-      process.env.OPENAI_API_KEY ||
-      process.env.OPENROUTER_API_KEY ||
-      process.env.NEXT_PUBLIC_DEEPSEEK_API_KEY ||
-      '';
+      (process.env.DEEPSEEK_API_KEY ||
+       process.env.NEXT_PUBLIC_DEEPSEEK_API_KEY ||
+       geminiKey ||
+       process.env.GROQ_API_KEY ||
+       process.env.OPENAI_API_KEY ||
+       process.env.OPENROUTER_API_KEY ||
+       '').trim();
 
     const apiKey = (clientKey || envKey).trim();
 
     // Auto-detect provider based on key format or environment
     const isGemini =
       apiKey.startsWith('AIza') ||
-      apiKey.startsWith('AQ.') ||
-      apiKey === geminiKey ||
+      (geminiKey && apiKey === geminiKey && !apiKey.startsWith('sk-')) ||
       body.provider === 'Gemini' ||
       body.provider === 'gemini';
+
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'NO_API_KEY',
+          message: 'No API key configured.'
+        },
+        { status: 400 }
+      );
+    }
 
     if (isGemini) {
       const ai = new GoogleGenAI({ apiKey });

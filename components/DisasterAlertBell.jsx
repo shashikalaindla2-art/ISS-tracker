@@ -6,14 +6,11 @@ import {
   AlertTriangle,
   CloudLightning,
   Waves,
-  Flame,
   Volume2,
   VolumeX,
-  ExternalLink,
   ShieldAlert,
   CheckCircle2,
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { soundEffects } from '@/lib/audio';
 
@@ -24,15 +21,12 @@ export default function DisasterAlertBell({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [hasDesktopPerm, setHasDesktopPerm] = useState(false);
+  const [hasDesktopPerm, setHasDesktopPerm] = useState(() => (
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission === 'granted'
+      : false
+  ));
   const dropdownRef = useRef(null);
-
-  // Check desktop notification permission
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setHasDesktopPerm(Notification.permission === 'granted');
-    }
-  }, []);
 
   // Close when clicking outside
   useEffect(() => {
